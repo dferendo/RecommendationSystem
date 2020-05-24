@@ -11,7 +11,3 @@ class RandomSlateGeneration:
 
     def forward(self):
         return np.random.choice(self.movies_list, self.slate_size)
-
-
-random_model = RandomSlateGeneration(5, np.arange(500))
-print(random_model.forward())
