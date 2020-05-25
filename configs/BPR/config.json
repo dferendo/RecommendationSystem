@@ -1,0 +1,10 @@
+{
+  "seed": 100,
+  "data_location": "./dataset/ml-latest-small/ratings.csv",
+  "slate_size": 6,
+  "implicit_rating": 4,
+  "validation_set_size": 0.1,
+  "test_set_size": 0.1,
+  "minimum_user_interaction": 5,
+  "num_of_epochs": 5
+}

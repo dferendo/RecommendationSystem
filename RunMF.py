@@ -13,14 +13,11 @@ def experiments_run():
 
     df_train, df_val, df_test = split_dataset(configs)
 
-    R_df = df_train.pivot(index='userId', columns='movieId', values='rating').fillna(0)
+    # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+    #     print(df_train)
 
-    R = R_df.to_numpy()
-    # Why do we need to mean the data?
-    user_ratings_mean = np.mean(R, axis=1)
-    R_demeaned = R - user_ratings_mean.reshape(-1, 1)
+    # R_df = df_train.pivot(index='userId', columns='movieId', values='rating').fillna(0)
 
-    print(R_demeaned)
     # df_all_training = pd.concat([df_train, df_val])
     # unique_movies = df_all_training['movieId'].unique()
     #
