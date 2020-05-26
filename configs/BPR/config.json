@@ -1,4 +1,5 @@
 {
+  "experiment_name": "BPR/experiment_1",
   "seed": 100,
   "data_location": "./dataset/ml-latest-small/ratings.csv",
   "slate_size": 6,
@@ -10,5 +11,7 @@
   "negative_samples": 5,
   "batch_size": 4096,
   "hidden_dims": 32,
-  "use_gpu": true
+  "use_gpu": true,
+  "weight_decay": 0.01,
+  "save_model": true
 }
