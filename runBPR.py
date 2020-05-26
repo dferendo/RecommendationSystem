@@ -3,25 +3,34 @@ from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
 from models import BayesianPR
 from dataloaders.NegativeSamplingDataLoader import NSData
-from experiment_builder import ExperimentBuilder
+from utils.experiment_builder import ExperimentBuilder
 
-import numpy as np
-
-from torch.utils.data import Dataset, DataLoader
-import torch
-import torch.nn as nn
-from torch.optim.adam import Adam
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import tqdm
-import sys
 
+class BPRExperimentBuilder(ExperimentBuilder):
 
-def loss_function(prediction_i, prediction_j):
-    """
-    Using the loss from the paper https://arxiv.org/pdf/1205.2618.pdf
-    """
-    return ((prediction_i - prediction_j).sigmoid().log().sum()) * -1
+    def pre_epoch_init_function(self):
+        self.train_loader.dataset.negative_sampling()
+
+    def loss_function(self, values):
+        """
+           Using the loss from the paper https://arxiv.org/pdf/1205.2618.pdf
+           """
+        prediction_i = values[0]
+        prediction_j = values[1]
+
+        return ((prediction_i - prediction_j).sigmoid().log().sum()) * -1
+
+    def forward_model(self, values_to_unpack):
+        user = values_to_unpack[0].cuda()
+        positive_interaction_item = values_to_unpack[1].cuda()
+        neg_sampled_item = values_to_unpack[2].cuda()
+
+        prediction_i, prediction_j = self.model(user, positive_interaction_item, neg_sampled_item)
+
+        return self.loss_function((prediction_i, prediction_j))
 
 
 def experiments_run():
@@ -32,11 +41,13 @@ def experiments_run():
     df_train, df_val, df_test, df_train_matrix = split_dataset(configs)
 
     train_dataset = NSData(df_train, df_train_matrix, configs['negative_samples'], True)
-    train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
+                              drop_last=True)
 
     model = BayesianPR.BPR(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_dims'])
 
-    ExperimentBuilder(model, train_loader, configs)
+    experiment_builder = BPRExperimentBuilder(model, train_loader, configs)
+    experiment_builder.run_experiment()
 
     # optimizer = Adam(model.parameters(), amsgrad=False, weight_decay=1e-05)
     #

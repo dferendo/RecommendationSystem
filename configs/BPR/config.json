@@ -13,5 +13,6 @@
   "hidden_dims": 32,
   "use_gpu": true,
   "weight_decay": 0.01,
-  "save_model": true
+  "save_model": true,
+  "continue_from_epoch": -1
 }
