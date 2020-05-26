@@ -11,6 +11,16 @@ import torch
 import torch.nn as nn
 from torch.optim.adam import Adam
 
+import tqdm
+import sys
+
+
+def loss_function(prediction_i, prediction_j):
+    """
+    Using the loss from the paper https://arxiv.org/pdf/1205.2618.pdf
+    """
+    return ((prediction_i - prediction_j).sigmoid().log().sum()) * -1
+
 
 def experiments_run():
     configs = extract_args_from_json()
@@ -42,17 +52,28 @@ def experiments_run():
 
     optimizer = Adam(model.parameters(), amsgrad=False, weight_decay=1e-05)
 
-    for epoch in range(10):
+    for epoch in range(configs['num_of_epochs']):
         model.train()
         # Get negative sampling
         train_loader.dataset.negative_sampling()
 
-        for user, item_i, item_j in train_loader:
-            print(user, item_i, item_j)
+        with tqdm.tqdm(total=len(train_loader), file=sys.stdout) as pbar_train:
+            for user, positive_interaction_item, neg_sampled_item in train_loader:
+                user = user.cuda()
+                positive_interaction_item = positive_interaction_item.cuda()
+                neg_sampled_item = neg_sampled_item.cuda()
 
-        print(epoch)
+                model.zero_grad()
+                prediction_i, prediction_j = model(user, positive_interaction_item, neg_sampled_item)
+                loss = loss_function(prediction_i, prediction_j)
 
-    # TODO: evaluation
+                loss.backward()
+                optimizer.step()
+
+                loss_value = loss.data.detach().cpu().numpy()
+
+                pbar_train.update(1)
+                pbar_train.set_description("loss: {:.4f}".format(loss))
 
 
 if __name__ == '__main__':
