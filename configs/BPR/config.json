@@ -7,7 +7,6 @@
   "test_set_size": 0.1,
   "minimum_user_interaction": 5,
   "num_of_epochs": 5,
-  "use_bias": false,
   "negative_samples": 5,
   "batch_size": 4096,
   "hidden_dims": 32,

@@ -21,23 +21,53 @@ class BPRData(Dataset):
 
         self.features_fill = []
 
+        # self.get_negative_samples_per_user()
+
+    def get_negative_samples_per_user(self):
+        """
+        # TODO: Doing it like this is a memory concern
+        :return:
+        """
+        user_id_to_negative_samples = {}
+
+        for user_id in self.train_matrix.index:
+            user_movies = self.train_matrix.loc[user_id]
+            print(user_movies)
+
     def negative_sampling(self):
         # Sampling is only needed when training
         assert self.is_training
+        assert self.neg_sample_per_training_example > 0
 
-        for index, interaction in self.training_examples.iterrows():
-            user, movie = interaction['userId'], interaction['movieId']
-            user_movies = self.train_matrix.loc[user]
+        grouped_users = self.training_examples.groupby(['userId'])['movieId'].apply(list)
+        all_negative_samples = []
 
+        for user_id, user_interactions in grouped_users.items():
+            # Generate all the negative samples
+            negative_samples_for_user = np.random.randint(self.num_of_movies,
+                                                          size=self.neg_sample_per_training_example * len(user_interactions))
+
+            # Reshape so that for every movie, we have x negative samples
+            negative_samples_for_user = np.reshape(negative_samples_for_user,
+                                                   (len(user_interactions), self.neg_sample_per_training_example))
+
+            users_interactions_matrix = np.expand_dims(np.array(user_interactions), axis=1)
+            user_id_matrix = np.full((len(user_interactions), 1), user_id)
+
+            # Concat with the userId, the movieId (positive interaction)
+            user_positive_interactions = np.hstack((user_id_matrix, users_interactions_matrix))
+
+            # For every negative sample column, concat it with the user true interaction
             for idx in range(self.neg_sample_per_training_example):
-                negative_sampled_movie = np.random.randint(self.num_of_movies)
+                column = negative_samples_for_user[:, idx]
+                column_matrix = np.expand_dims(np.array(column), axis=1)
 
-                # In this case, we need to use iloc since the random number generated that not correspond to a movieId
-                # but rather to an array index
-                while user_movies.iloc[negative_sampled_movie] != 0:
-                    negative_sampled_movie = np.random.randint(self.num_of_movies)
+                # Concat with the user interactions
+                negative_samples = np.hstack((user_positive_interactions, column_matrix))
 
-                self.features_fill.append([user, movie, user_movies.index[negative_sampled_movie]])
+                all_negative_samples.append(negative_samples)
+
+        self.features_fill = np.vstack(all_negative_samples)
 
     def __len__(self):
         if self.is_training:
@@ -66,7 +96,7 @@ def experiments_run():
 
     df_train, df_val, df_test, df_train_matrix = split_dataset(configs)
 
-    train_dataset = BPRData(df_train, df_train_matrix, configs['negative_samples'], configs['use_bias'])
+    train_dataset = BPRData(df_train, df_train_matrix, configs['negative_samples'], True)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4)
 
     model = BayesianPR.BPR(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_dims'])
@@ -88,8 +118,17 @@ def experiments_run():
 
     model.cuda()
 
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.lamda)
-    self.optimizer = Adam(self.parameters(), amsgrad=False, weight_decay=weight_decay_coefficient)
+    optimizer = Adam(model.parameters(), amsgrad=False, weight_decay=1e-05)
+
+    for epoch in range(10):
+        model.train()
+        # Get negative sampling
+        train_loader.dataset.negative_sampling()
+
+        for user, item_i, item_j in train_loader:
+            print(user, item_i, item_j)
+
+        print(epoch)
 
     # TODO: evaluation
 

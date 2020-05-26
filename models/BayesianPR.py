@@ -23,3 +23,10 @@ class BPR(nn.Module):
         prediction_j = (user * item_j).sum(dim=-1)
 
         return prediction_i, prediction_j
+
+    def reset_parameters(self):
+        """
+        Re-initialize the network parameters.
+        """
+        self.embed_user.reset_parameters()
+        self.embed_item.reset_parameters()
