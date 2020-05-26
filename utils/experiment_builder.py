@@ -102,7 +102,7 @@ class ExperimentBuilder(nn.Module, ABC):
         pass
 
     @abstractmethod
-    def forward_model(self, values_to_unpack):
+    def forward_model_training(self, values_to_unpack):
         """
 
         :param values_to_unpack: Values obtained from the training data loader
@@ -111,10 +111,12 @@ class ExperimentBuilder(nn.Module, ABC):
         pass
 
     def run_training_epoch(self):
+        all_losses = []
+
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
                 self.model.zero_grad()
-                loss = self.forward_model(values_to_unpack)  # take a training iter step
+                loss = self.forward_model_training(values_to_unpack)  # take a training iter step
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -122,12 +124,17 @@ class ExperimentBuilder(nn.Module, ABC):
 
                 loss_value = loss.data.detach().cpu().numpy()
 
+                all_losses.append(float(loss_value))
                 pbar.update(1)
-                pbar.set_description(f"loss: {loss_value:.4f}")
+                pbar.set_description(f"loss: {float(loss_value):.4f}")
+
+        return np.mean(all_losses)
 
     def run_experiment(self):
-        for i, epoch_idx in enumerate(range(self.starting_epoch, self.configs['num_of_epochs'])):
+        for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             self.pre_epoch_init_function()
-            self.run_training_epoch()
+            average_loss = self.run_training_epoch()
+
+            self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
 
             # TODO: Validation and testing

@@ -23,7 +23,7 @@ class BPRExperimentBuilder(ExperimentBuilder):
 
         return ((prediction_i - prediction_j).sigmoid().log().sum()) * -1
 
-    def forward_model(self, values_to_unpack):
+    def forward_model_training(self, values_to_unpack):
         user = values_to_unpack[0].cuda()
         positive_interaction_item = values_to_unpack[1].cuda()
         neg_sampled_item = values_to_unpack[2].cuda()

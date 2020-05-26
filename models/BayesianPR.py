@@ -6,6 +6,7 @@ class BPR(nn.Module):
     """
     Implementation of BPR-MF (Bayesian Personalized Ranking - Matrix Factorization) following the paper
     https://arxiv.org/pdf/1205.2618.pdf
+    This model has a pairwise loss function.
     """
     def __init__(self, num_users, num_items, latent_dims):
         super(BPR, self).__init__()
