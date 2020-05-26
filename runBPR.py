@@ -18,21 +18,9 @@ class BPRData(Dataset):
         self.neg_sample_per_training_example = neg_sample_per_training_example
         self.is_training = is_training
         self.num_of_movies = len(train_matrix.columns)
+        self.all_movies_that_can_be_sampled = np.array(train_matrix.columns)
 
-        self.features_fill = []
-
-        # self.get_negative_samples_per_user()
-
-    def get_negative_samples_per_user(self):
-        """
-        # TODO: Doing it like this is a memory concern
-        :return:
-        """
-        user_id_to_negative_samples = {}
-
-        for user_id in self.train_matrix.index:
-            user_movies = self.train_matrix.loc[user_id]
-            print(user_movies)
+        self.interactions_with_negative_sampling = None
 
     def negative_sampling(self):
         # Sampling is only needed when training
@@ -40,12 +28,16 @@ class BPRData(Dataset):
         assert self.neg_sample_per_training_example > 0
 
         grouped_users = self.training_examples.groupby(['userId'])['movieId'].apply(list)
+
         all_negative_samples = []
 
         for user_id, user_interactions in grouped_users.items():
-            # Generate all the negative samples
-            negative_samples_for_user = np.random.randint(self.num_of_movies,
-                                                          size=self.neg_sample_per_training_example * len(user_interactions))
+            # Get the possible index of movieIds that we can sample for this user
+            movies_to_sample = np.setxor1d(self.all_movies_that_can_be_sampled, user_interactions)
+
+            # Generate all the negative samples (Not sure about the efficiency of np.choice)
+            negative_samples_for_user = np.random.choice(movies_to_sample,
+                                                         size=self.neg_sample_per_training_example * len(user_interactions))
 
             # Reshape so that for every movie, we have x negative samples
             negative_samples_for_user = np.reshape(negative_samples_for_user,
@@ -67,7 +59,7 @@ class BPRData(Dataset):
 
                 all_negative_samples.append(negative_samples)
 
-        self.features_fill = np.vstack(all_negative_samples)
+        self.interactions_with_negative_sampling = np.vstack(all_negative_samples)
 
     def __len__(self):
         if self.is_training:
@@ -87,6 +79,7 @@ class BPRData(Dataset):
         item_i = features[idx][1]
         item_j = features[idx][2] if \
             self.is_training else features[idx][1]
+
         return user, item_i, item_j
 
 
