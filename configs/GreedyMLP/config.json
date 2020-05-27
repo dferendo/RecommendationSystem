@@ -1,5 +1,5 @@
 {
-  "experiment_name": "BPR/experiment_1",
+  "experiment_name": "GreedyMLP/experiment_1",
   "seed": 100,
   "data_location": "./dataset/ml-latest-small/ratings.csv",
   "slate_size": 6,

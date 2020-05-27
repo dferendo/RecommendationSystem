@@ -1,5 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
+import time
 
 
 class PointwiseDataLoader(Dataset):
@@ -66,6 +67,7 @@ class PointwiseDataLoader(Dataset):
         return len(self.training_examples)
 
     def __getitem__(self, idx):
+        start = time.time()
         # If in training, we need to use the negatively sampled item with the interacted item
         if self.is_training:
             user = self.all_interactions[idx, 0]
@@ -75,11 +77,11 @@ class PointwiseDataLoader(Dataset):
             item_i = self.training_examples.iloc[idx]['movieId']
 
         # Convert from ids to indexes for the embedding
-        user = self.train_matrix.index.get_loc(user)
-        item_i = self.train_matrix.columns.get_loc(item_i)
+        user_index = self.train_matrix.index.get_loc(user)
+        item_i_index = self.train_matrix.columns.get_loc(item_i)
 
         # Obtain the rating from the original matrix since samples can be positive/negative (both user/item are
-        # indicating indices, thus you need to use iloc to get the rating)
-        rating = self.train_matrix.iloc[user].iloc[item_i]
+        # indicating indices, thus you need to use iat to get the rating)
+        rating = self.train_matrix.iat[user_index, item_i_index]
 
-        return user, item_i, rating
+        return user_index, item_i_index, rating

@@ -52,34 +52,6 @@ def experiments_run():
     experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, configs)
     experiment_builder.run_experiment()
 
-    # optimizer = Adam(model.parameters(), amsgrad=False, weight_decay=1e-05)
-    #
-    # for epoch in range(configs['num_of_epochs']):
-    #     model.train()
-    #     # Get negative sampling
-    #     train_loader.dataset.negative_sampling()
-    #
-    #     with tqdm.tqdm(total=len(train_loader), file=sys.stdout) as pbar_train:
-    #         for user, positive_interaction_item, neg_sampled_item in train_loader:
-    #             user = user.cuda()
-    #             positive_interaction_item = positive_interaction_item.cuda()
-    #             neg_sampled_item = neg_sampled_item.cuda()
-    #
-    #             model.zero_grad()
-    #             prediction_i, prediction_j = model(user, positive_interaction_item, neg_sampled_item)
-    #             loss = loss_function(prediction_i, prediction_j)
-    #
-    #             loss.backward()
-    #             optimizer.step()
-    #
-    #             loss_value = loss.data.detach().cpu().numpy()
-    #
-    #             pbar_train.update(1)
-    #             pbar_train.set_description("loss: {:.4f}".format(loss_value))
-    #
-    #     # log the epoch loss
-    #     writer.add_scalar('training loss', loss_value, epoch)
-
 
 if __name__ == '__main__':
     experiments_run()
