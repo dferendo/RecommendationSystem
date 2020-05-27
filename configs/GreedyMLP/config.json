@@ -9,7 +9,7 @@
   "minimum_user_interaction": 5,
   "num_of_epochs": 50,
   "negative_samples": 5,
-  "batch_size": 4096,
+  "batch_size": 128,
   "hidden_layers_dims": [300, 1024, 512, 256],
   "use_gpu": true,
   "weight_decay": 0.01,

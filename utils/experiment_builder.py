@@ -171,7 +171,7 @@ class ExperimentBuilder(nn.Module, ABC):
             self.pre_epoch_init_function()
 
             average_loss = self.run_training_epoch()
-            avg_loss, avg_precision, avg_hit_rate = self.run_validation_epoch()
+            # avg_loss, avg_precision, avg_hit_rate = self.run_validation_epoch()
 
             # val_mean_accuracy = np.mean(current_epoch_losses['val_acc'])
 

@@ -32,6 +32,7 @@ class GreedyMLP(nn.Module):
 
         # Output layer (Binary classification since we are doing pointwise loss)
         self.classifier = torch.nn.Linear(in_features=self.hidden_layers_dim[-1], out_features=1)
+        self.logistic = torch.nn.Sigmoid()
 
     def forward(self, user_indices, item_indices):
         user_embedding = self.embedding_user(user_indices)
@@ -47,7 +48,7 @@ class GreedyMLP(nn.Module):
             # vector = torch.nn.Dropout(p=0.5)(vector)
 
         out = self.classifier(out)
-        out = F.sigmoid(out)
+        out = self.logistic(out)
         
         return out
 

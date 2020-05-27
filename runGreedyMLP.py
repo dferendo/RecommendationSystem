@@ -11,6 +11,7 @@ import torch
 
 
 class GreedyMLPExperimentBuilder(ExperimentBuilder):
+    criterion = torch.nn.BCELoss()
 
     def pre_epoch_init_function(self):
         self.train_loader.dataset.negative_sampling()
@@ -20,16 +21,19 @@ class GreedyMLPExperimentBuilder(ExperimentBuilder):
         Using the loss from the paper https://arxiv.org/pdf/1708.05031.pdf (ie Pointwise loss with negative sampling
         which is binary cross-entropy loss)
         """
-        return torch.nn.BCELoss()
+        ratings_pred = values[0].double()
+        ratings = values[1]
+
+        return self.criterion(ratings_pred.view(-1), ratings)
 
     def forward_model_training(self, values_to_unpack):
-        user = values_to_unpack[0].cuda()
-        positive_interaction_item = values_to_unpack[1].cuda()
-        neg_sampled_item = values_to_unpack[2].cuda()
+        users = values_to_unpack[0].cuda()
+        movies = values_to_unpack[1].cuda()
+        ratings = values_to_unpack[2].cuda()
 
-        prediction_i, prediction_j = self.model(user, positive_interaction_item, neg_sampled_item)
+        ratings_pred = self.model(users, movies)
 
-        return self.loss_function((prediction_i, prediction_j))
+        return self.loss_function((ratings_pred, ratings))
 
 
 def experiments_run():
