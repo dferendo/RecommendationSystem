@@ -1,27 +1,26 @@
 from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
-from models import BayesianPR
-from dataloaders.PairwiseDataLoader import PairwiseDataLoader
+from models import GreedyMLP
+from dataloaders.PointwiseDataLoader import PointwiseDataLoader
 from utils.experiment_builder import ExperimentBuilder
 
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+import torch
 
 
-class BPRExperimentBuilder(ExperimentBuilder):
+class GreedyMLPExperimentBuilder(ExperimentBuilder):
 
     def pre_epoch_init_function(self):
         self.train_loader.dataset.negative_sampling()
 
     def loss_function(self, values):
         """
-           Using the loss from the paper https://arxiv.org/pdf/1205.2618.pdf
-           """
-        prediction_i = values[0]
-        prediction_j = values[1]
-
-        return ((prediction_i - prediction_j).sigmoid().log().sum()) * -1
+        Using the loss from the paper https://arxiv.org/pdf/1708.05031.pdf (ie Pointwise loss with negative sampling
+        which is binary cross-entropy loss)
+        """
+        return torch.nn.BCELoss()
 
     def forward_model_training(self, values_to_unpack):
         user = values_to_unpack[0].cuda()
@@ -39,13 +38,14 @@ def experiments_run():
 
     df_train, df_val, df_test, df_train_matrix = split_dataset(configs)
 
-    train_dataset = PairwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], True)
+    train_dataset = PointwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], True)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    model = BayesianPR.BPR(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_dims'])
+    model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
+                                configs['use_bias'])
 
-    experiment_builder = BPRExperimentBuilder(model, train_loader, configs)
+    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, configs)
     experiment_builder.run_experiment()
 
     # optimizer = Adam(model.parameters(), amsgrad=False, weight_decay=1e-05)

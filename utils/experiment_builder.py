@@ -37,10 +37,10 @@ class ExperimentBuilder(nn.Module, ABC):
 
         # Set best models to be at 0 since we are just starting
         self.best_val_model_idx = 0
-        self.best_val_model_acc = 0.
+        self.best_val_model_precision = 0.
 
         if configs['continue_from_epoch'] != -1:  # if continue from epoch is not -1 then
-            self.best_val_model_idx, self.best_val_model_acc, self.state = self.load_model(
+            self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model(
                 model_save_dir=self.experiment_saved_models, model_save_name="train_model",
                 model_idx=configs['continue_from_epoch'])
 
@@ -83,7 +83,11 @@ class ExperimentBuilder(nn.Module, ABC):
         state = torch.load(f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
         self.load_state_dict(state_dict=state['network'])
 
-        return state['best_val_model_idx'], state['best_val_model_acc'], state
+        return state['best_val_model_idx'], state['best_val_model_precision'], state
+
+    def save_model(self, model_save_dir, model_save_name, model_idx, state):
+        state['network'] = self.state_dict()
+        torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
 
     @abstractmethod
     def pre_epoch_init_function(self):
@@ -110,6 +114,14 @@ class ExperimentBuilder(nn.Module, ABC):
         """
         pass
 
+    # @abstractmethod
+    # def forward_model_test(self, values_to_unpack):
+    #     """
+    #     :param values_to_unpack: Values obtained from the training data loader
+    #     :return:
+    #     """
+    #     pass
+
     def run_training_epoch(self):
         all_losses = []
 
@@ -130,11 +142,44 @@ class ExperimentBuilder(nn.Module, ABC):
 
         return np.mean(all_losses)
 
+    def run_validation_epoch(self):
+        # TODO:
+
+        # with tqdm.tqdm(total=len(self.val_data), file=sys.stdout) as pbar_val:  # create a progress bar for validation
+        #     for x, y in self.val_data:  # get data batches
+        #         loss, accuracy = self.run_evaluation_iter(x=x, y=y)  # run a validation iter
+        #         current_epoch_losses["val_loss"].append(loss)  # add current iter loss to val loss list.
+        #         current_epoch_losses["val_acc"].append(accuracy)  # add current iter acc to val acc lst.
+        #         pbar_val.update(1)  # add 1 step to the progress bar
+        #         pbar_val.set_description("loss: {:.4f}, accuracy: {:.4f}".format(loss, accuracy))
+
+        return np.random.randint(0, 1), np.random.randint(0, 1), np.random.randint(0, 1)
+
     def run_experiment(self):
+        # Save hyper-parameters
+        with SummaryWriter() as w:
+            hyper_params = self.configs.copy()
+
+            # An error will be thrown if a value of a param is an array
+            for key, value in hyper_params.items():
+                if type(value) is list:
+                    hyper_params[key] = ''.join(map(str, value))
+
+            w.add_hparams(hyper_params, {})
+
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             self.pre_epoch_init_function()
+
             average_loss = self.run_training_epoch()
+            avg_loss, avg_precision, avg_hit_rate = self.run_validation_epoch()
+
+            # val_mean_accuracy = np.mean(current_epoch_losses['val_acc'])
+
+            # if val_mean_accuracy > self.best_val_model_acc:  # if current epoch's mean val acc is greater than the saved best val acc then
+            #     self.best_val_model_acc = val_mean_accuracy  # set the best val model acc to be current epoch's val accuracy
+            #     self.best_val_model_idx = epoch_idx  # set the experiment-wise best val idx to be the current epoch's idx
 
             self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
 
             # TODO: Validation and testing
+            # TODO: Saving model per epoch

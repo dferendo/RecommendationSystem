@@ -7,6 +7,7 @@ import torch.nn.functional as F
 class GreedyMLP(nn.Module):
     """
     Implementation follows the model proposed by (Neural Collaborative Filtering) https://arxiv.org/pdf/1708.05031.pdf
+    We will use a pointwise loss function. Note this method is also known as DeepRank.
     """
     def __init__(self, num_users, num_items, hidden_layers_dim, use_bias):
         super(GreedyMLP, self).__init__()
@@ -24,7 +25,7 @@ class GreedyMLP(nn.Module):
         self.embedding_user = torch.nn.Embedding(num_embeddings=self.num_users, embedding_dim=latent_dims)
         self.embedding_item = torch.nn.Embedding(num_embeddings=self.num_items, embedding_dim=latent_dims)
 
-        # Pairwise iteration
+        # Pairwise iteration [ie output_size will be the input_size of the next iteration]
         for idx, (input_size, output_size) in enumerate(zip(self.hidden_layers_dim, self.hidden_layers_dim[1:])):
             self.layer_dict[f'fcc_{idx}'] = nn.Linear(in_features=input_size, out_features=output_size,
                                                       bias=self.use_bias)
@@ -50,5 +51,14 @@ class GreedyMLP(nn.Module):
         
         return out
 
+    def reset_parameters(self):
+        """
+        Re-initializes the networks parameters
+        """
+        self.embedding_user.reset_parameters()
+        self.embedding_item.reset_parameters()
 
-GreedyMLP(100, 100, [300, 1024, 512, 256], False)
+        for item in self.layer_dict.children():
+            item.reset_parameters()
+
+        self.classifier.reset_parameters()
