@@ -48,7 +48,7 @@ def experiments_run():
 
     test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
                                            configs['slate_size'])
-    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=4, drop_last=True)
+    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
 
     for idx, values_to_unpack in enumerate(test_loader):
         print(values_to_unpack)

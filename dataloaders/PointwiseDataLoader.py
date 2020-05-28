@@ -144,8 +144,11 @@ class PointwiseDataLoaderTest(Dataset):
 
         # Convert from ids to indexes for the embedding
         user_index = self.test_matrix.index.get_loc(user_id)
-        slate_items_indexes = list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id), slate_items_ids))
-        negative_items_indexes = list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id),
-                                          negative_samples_ids))
+        slate_items_indexes = np.array(list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id),
+                                                slate_items_ids)))
+        negative_items_indexes = np.array(list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id),
+                                          negative_samples_ids)))
+
+
 
         return user_index, slate_items_indexes, negative_items_indexes
