@@ -2,7 +2,7 @@ from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
 from models import GreedyMLP
-from dataloaders.PointwiseDataLoader import PointwiseDataLoader
+from dataloaders.PointwiseDataLoader import PointwiseDataLoader, PointwiseDataLoaderTest
 from utils.experiment_builder import ExperimentBuilder
 
 from torch.utils.data import DataLoader
@@ -40,17 +40,24 @@ def experiments_run():
     configs = extract_args_from_json()
     set_seeds(configs['seed'])
 
-    df_train, df_val, df_test, df_train_matrix = split_dataset(configs)
+    df_train, df_val, df_test, df_train_matrix, df_val_matrix, df_test_matrix = split_dataset(configs)
 
     train_dataset = PointwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], True)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
-                                configs['use_bias'])
+    test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
+                                           configs['slate_size'])
+    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=4, drop_last=True)
 
-    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, configs)
-    experiment_builder.run_experiment()
+    for idx, values_to_unpack in enumerate(test_loader):
+        print(values_to_unpack)
+
+    # model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
+    #                             configs['use_bias'])
+    #
+    # experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, configs)
+    # experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':

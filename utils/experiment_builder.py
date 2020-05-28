@@ -123,6 +123,7 @@ class ExperimentBuilder(nn.Module, ABC):
     #     pass
 
     def run_training_epoch(self):
+        self.model.train()
         all_losses = []
 
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
@@ -143,7 +144,9 @@ class ExperimentBuilder(nn.Module, ABC):
         return np.mean(all_losses)
 
     def run_validation_epoch(self):
-        # TODO:
+        self.model.eval()
+
+        # with torch.no_grad():
 
         # with tqdm.tqdm(total=len(self.val_data), file=sys.stdout) as pbar_val:  # create a progress bar for validation
         #     for x, y in self.val_data:  # get data batches

@@ -1,6 +1,5 @@
 import numpy as np
 from torch.utils.data import Dataset
-import time
 
 
 class PointwiseDataLoader(Dataset):
@@ -13,7 +12,6 @@ class PointwiseDataLoader(Dataset):
         self.train_matrix = train_matrix
         self.neg_sample_per_training_example = neg_sample_per_training_example
         self.is_training = is_training
-        self.num_of_movies = len(train_matrix.columns)
         self.all_movies_that_can_be_sampled = np.array(train_matrix.columns)
 
         # This will contain a matrix [user_id, item_id]. Note the item_id can be a positive or negative interaction
@@ -67,7 +65,6 @@ class PointwiseDataLoader(Dataset):
         return len(self.training_examples)
 
     def __getitem__(self, idx):
-        start = time.time()
         # If in training, we need to use the negatively sampled item with the interacted item
         if self.is_training:
             user = self.all_interactions[idx, 0]
@@ -85,3 +82,70 @@ class PointwiseDataLoader(Dataset):
         rating = self.train_matrix.iat[user_index, item_i_index]
 
         return user_index, item_i_index, rating
+
+
+class PointwiseDataLoaderTest(Dataset):
+    """
+    Similar to the paper https://arxiv.org/pdf/1708.05031.pdf, we will simulate the candidate process by
+    randomly sampling negatives instances. For our problem, the model needs to generate a slate. Thus, we will
+    pick the top-k highest probable items.
+    """
+    def __init__(self, test_examples, test_matrix, neg_sample_per_user, slate_size):
+        self.test_examples = test_examples
+        self.test_matrix = test_matrix
+        self.neg_sample_per_user = neg_sample_per_user
+        self.all_movies_that_can_be_sampled = np.array(test_matrix.columns)
+        self.slate_size = slate_size
+
+        # This will contain a matrix [user_id, [movie_ids], [movie_ids]].
+        # The second element represents the ground truth slate
+        # The third element are the negative sampled movies
+        # Note, we will only have 1 slate per user
+        self.all_test_interactions = self._get_test_instances()
+
+    def _get_test_instances(self):
+        # Sampling is only needed when training
+        assert self.neg_sample_per_user > 0
+
+        grouped_users = self.test_examples.groupby(['userId'])['movieId'].apply(list)
+
+        all_samples = []
+
+        for user_id, user_interactions in grouped_users.items():
+            if len(user_interactions) < self.slate_size:
+                continue
+
+            # Get the possible index of movieIds that we can sample for this user
+            movies_to_sample = np.setxor1d(self.all_movies_that_can_be_sampled, user_interactions)
+
+            # Generate all the negative samples (Not sure about the efficiency of np.choice)
+            negative_samples_for_user = np.random.choice(movies_to_sample, size=self.neg_sample_per_user)
+
+            # Get the last n interactions
+            slate_matrix = np.expand_dims(np.array(user_interactions[-self.slate_size:]), axis=1)
+            user_id_matrix = np.expand_dims(np.array([user_id]), axis=1)
+            negative_samples_matrix = np.expand_dims(negative_samples_for_user, axis=1)
+
+            test_example = np.hstack((user_id_matrix.T, slate_matrix.T, negative_samples_matrix.T))
+
+            all_samples.append(test_example)
+
+        return np.vstack(all_samples)
+
+    def __len__(self):
+        return self.all_test_interactions.shape[0]
+
+    def __getitem__(self, idx):
+        test_example = self.all_test_interactions[idx]
+
+        user_id = test_example[0]
+        slate_items_ids = test_example[1:self.slate_size + 1]
+        negative_samples_ids = test_example[self.slate_size + 1:]
+
+        # Convert from ids to indexes for the embedding
+        user_index = self.test_matrix.index.get_loc(user_id)
+        slate_items_indexes = list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id), slate_items_ids))
+        negative_items_indexes = list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id),
+                                          negative_samples_ids))
+
+        return user_index, slate_items_indexes, negative_items_indexes

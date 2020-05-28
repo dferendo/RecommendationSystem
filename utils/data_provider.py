@@ -58,4 +58,4 @@ def split_dataset(configs):
     # Remove any movies that do not appear in the training set from the validation set
     df_val = df_val.loc[df_val['movieId'].isin(df_train['movieId'].unique())]
 
-    return df_train, df_val, df_test, get_sparse_df(df_train)
+    return df_train, df_val, df_test, get_sparse_df(df_train), get_sparse_df(df_val), get_sparse_df(df_test)
