@@ -12,12 +12,16 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilder(nn.Module, ABC):
-    def __init__(self, model, train_loader, configs, print_learnable_parameters=True):
+    def __init__(self, model, train_loader, validation_loader, configs, print_learnable_parameters=True):
         super(ExperimentBuilder, self).__init__()
         self.configs = configs
         self.model = model
         self.model.reset_parameters()
+
         self.train_loader = train_loader
+        self.validation_loader = validation_loader
+        # self.test_loader = test_loader
+
         self.optimizer = Adam(self.parameters(), amsgrad=False, weight_decay=configs['weight_decay'])
         self.device = torch.cuda.current_device()
 
@@ -114,13 +118,13 @@ class ExperimentBuilder(nn.Module, ABC):
         """
         pass
 
-    # @abstractmethod
-    # def forward_model_test(self, values_to_unpack):
-    #     """
-    #     :param values_to_unpack: Values obtained from the training data loader
-    #     :return:
-    #     """
-    #     pass
+    @abstractmethod
+    def forward_model_test(self, values_to_unpack):
+        """
+        :param values_to_unpack: Values obtained from the training data loader
+        :return:
+        """
+        pass
 
     def run_training_epoch(self):
         self.model.train()
@@ -129,7 +133,7 @@ class ExperimentBuilder(nn.Module, ABC):
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
                 self.model.zero_grad()
-                loss = self.forward_model_training(values_to_unpack)  # take a training iter step
+                loss = self.forward_model_training(values_to_unpack)
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -146,15 +150,13 @@ class ExperimentBuilder(nn.Module, ABC):
     def run_validation_epoch(self):
         self.model.eval()
 
-        # with torch.no_grad():
+        with torch.no_grad():
+            with tqdm.tqdm(total=len(self.validation_loader), file=sys.stdout) as pbar_val:
+                for idx, values_to_unpack in enumerate(self.validation_loader):
+                    predicted_slate = self.forward_model_test(values_to_unpack)
+                    ground_truth_slate = values_to_unpack[2].cuda()
 
-        # with tqdm.tqdm(total=len(self.val_data), file=sys.stdout) as pbar_val:  # create a progress bar for validation
-        #     for x, y in self.val_data:  # get data batches
-        #         loss, accuracy = self.run_evaluation_iter(x=x, y=y)  # run a validation iter
-        #         current_epoch_losses["val_loss"].append(loss)  # add current iter loss to val loss list.
-        #         current_epoch_losses["val_acc"].append(accuracy)  # add current iter acc to val acc lst.
-        #         pbar_val.update(1)  # add 1 step to the progress bar
-        #         pbar_val.set_description("loss: {:.4f}, accuracy: {:.4f}".format(loss, accuracy))
+                    print(predicted_slate, ground_truth_slate)
 
         return np.random.randint(0, 1), np.random.randint(0, 1), np.random.randint(0, 1)
 
@@ -173,8 +175,8 @@ class ExperimentBuilder(nn.Module, ABC):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             self.pre_epoch_init_function()
 
-            average_loss = self.run_training_epoch()
-            # avg_loss, avg_precision, avg_hit_rate = self.run_validation_epoch()
+            # average_loss = self.run_training_epoch()
+            avg_loss, avg_precision, avg_hit_rate = self.run_validation_epoch()
 
             # val_mean_accuracy = np.mean(current_epoch_losses['val_acc'])
 

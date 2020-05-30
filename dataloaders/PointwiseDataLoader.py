@@ -104,8 +104,7 @@ class PointwiseDataLoaderTest(Dataset):
         self.all_test_interactions = self._get_test_instances()
 
     def _get_test_instances(self):
-        # Sampling is only needed when training
-        assert self.neg_sample_per_user > 0
+        assert self.neg_sample_per_user >= 0
 
         grouped_users = self.test_examples.groupby(['userId'])['movieId'].apply(list)
 
@@ -115,16 +114,21 @@ class PointwiseDataLoaderTest(Dataset):
             if len(user_interactions) < self.slate_size:
                 continue
 
-            # Get the possible index of movieIds that we can sample for this user
-            movies_to_sample = np.setxor1d(self.all_movies_that_can_be_sampled, user_interactions)
+            if self.neg_sample_per_user > 0:
+                # Get the possible index of movieIds that we can sample for this user
+                movies_to_sample = np.setxor1d(self.all_movies_that_can_be_sampled, user_interactions)
 
-            # Generate all the negative samples (Not sure about the efficiency of np.choice)
-            negative_samples_for_user = np.random.choice(movies_to_sample, size=self.neg_sample_per_user)
+                # Generate all the negative samples (Not sure about the efficiency of np.choice)
+                movies_to_sample = np.random.choice(movies_to_sample, size=self.neg_sample_per_user)
+            else:
+                # If negative sample per user is 0, then we will use all the movies (This feature was added so that
+                # it would be a fair comparision between using candidate generation or not)
+                movies_to_sample = self.all_movies_that_can_be_sampled
 
             # Get the last n interactions
             slate_matrix = np.expand_dims(np.array(user_interactions[-self.slate_size:]), axis=1)
             user_id_matrix = np.expand_dims(np.array([user_id]), axis=1)
-            negative_samples_matrix = np.expand_dims(negative_samples_for_user, axis=1)
+            negative_samples_matrix = np.expand_dims(movies_to_sample, axis=1)
 
             test_example = np.hstack((user_id_matrix.T, slate_matrix.T, negative_samples_matrix.T))
 
@@ -140,15 +144,16 @@ class PointwiseDataLoaderTest(Dataset):
 
         user_id = test_example[0]
         slate_items_ids = test_example[1:self.slate_size + 1]
-        negative_samples_ids = test_example[self.slate_size + 1:]
+        movie_ids = test_example[self.slate_size + 1:]
 
         # Convert from ids to indexes for the embedding
         user_index = self.test_matrix.index.get_loc(user_id)
+        # These are the targets
         slate_items_indexes = np.array(list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id),
                                                 slate_items_ids)))
-        negative_items_indexes = np.array(list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id),
-                                          negative_samples_ids)))
+        movie_indexes = np.array(list(map(lambda movie_id: self.test_matrix.columns.get_loc(movie_id), movie_ids)))
 
+        user_id_matrix = np.full((movie_indexes.shape[0], 1), user_index)
+        movie_indexes_matrix = np.expand_dims(movie_indexes, axis=1)
 
-
-        return user_index, slate_items_indexes, negative_items_indexes
+        return user_id_matrix, movie_indexes_matrix, slate_items_indexes

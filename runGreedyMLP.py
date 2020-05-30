@@ -35,6 +35,18 @@ class GreedyMLPExperimentBuilder(ExperimentBuilder):
 
         return self.loss_function((ratings_pred, ratings))
 
+    def forward_model_test(self, values_to_unpack):
+        users = values_to_unpack[0].cuda()
+        movies = values_to_unpack[1].cuda()
+
+        ratings_pred = self.model(users, movies)
+        ratings_pred = ratings_pred.squeeze()
+
+        highest_ratings = torch.topk(ratings_pred, self.configs['slate_size'], dim=1)
+
+        # Return the indices of the movies selected (the slate)
+        return highest_ratings[1]
+
 
 def experiments_run():
     configs = extract_args_from_json()
@@ -46,18 +58,15 @@ def experiments_run():
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
-                                           configs['slate_size'])
-    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
+    val_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
+                                          configs['slate_size'])
+    val_loader = DataLoader(val_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
 
-    for idx, values_to_unpack in enumerate(test_loader):
-        print(values_to_unpack)
+    model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
+                                configs['use_bias'])
 
-    # model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
-    #                             configs['use_bias'])
-    #
-    # experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, configs)
-    # experiment_builder.run_experiment()
+    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, configs)
+    experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':
