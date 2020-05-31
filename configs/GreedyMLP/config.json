@@ -7,7 +7,7 @@
   "validation_set_size": 0.1,
   "test_set_size": 0.1,
   "minimum_user_interaction": 5,
-  "num_of_epochs": 50,
+  "num_of_epochs": 2,
   "negative_samples": 5,
   "batch_size": 128,
   "hidden_layers_dims": [300, 1024, 512, 256],

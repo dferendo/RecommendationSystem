@@ -6,7 +6,6 @@ from dataloaders.PointwiseDataLoader import PointwiseDataLoader, PointwiseDataLo
 from utils.experiment_builder import ExperimentBuilder
 
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 import torch
 
 
@@ -63,10 +62,14 @@ def experiments_run():
                                           configs['slate_size'])
     val_loader = DataLoader(val_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
 
+    test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
+                                           configs['slate_size'])
+    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
+
     model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
                                 configs['use_bias'])
 
-    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, configs)
+    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, test_loader, configs)
     experiment_builder.run_experiment()
 
 

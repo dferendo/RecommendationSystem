@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilder(nn.Module, ABC):
-    def __init__(self, model, train_loader, validation_loader, configs, print_learnable_parameters=True):
+    def __init__(self, model, train_loader, validation_loader, test_loader, configs, print_learnable_parameters=True):
         super(ExperimentBuilder, self).__init__()
         self.configs = configs
         self.model = model
@@ -21,7 +21,7 @@ class ExperimentBuilder(nn.Module, ABC):
 
         self.train_loader = train_loader
         self.validation_loader = validation_loader
-        # self.test_loader = test_loader
+        self.test_loader = test_loader
 
         self.optimizer = Adam(self.parameters(), amsgrad=False, weight_decay=configs['weight_decay'])
         self.device = torch.cuda.current_device()
@@ -148,14 +148,14 @@ class ExperimentBuilder(nn.Module, ABC):
 
         return np.mean(all_losses)
 
-    def run_validation_epoch(self):
+    def run_evaluation_epoch(self, evaluation_loader):
         self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
 
         with torch.no_grad():
-            with tqdm.tqdm(total=len(self.validation_loader), file=sys.stdout) as pbar_val:
-                for idx, values_to_unpack in enumerate(self.validation_loader):
+            with tqdm.tqdm(total=len(evaluation_loader), file=sys.stdout) as pbar_val:
+                for idx, values_to_unpack in enumerate(evaluation_loader):
                     predicted_slate = self.forward_model_test(values_to_unpack)
                     ground_truth_slate = values_to_unpack[2].cuda()
 
@@ -186,17 +186,38 @@ class ExperimentBuilder(nn.Module, ABC):
             self.pre_epoch_init_function()
 
             average_loss = self.run_training_epoch()
-            hr, pre, cat_cov = self.run_validation_epoch()
+            hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.validation_loader)
 
-            print(hr, pre, cat_cov)
-
-            # val_mean_accuracy = np.mean(current_epoch_losses['val_acc'])
-
-            # if val_mean_accuracy > self.best_val_model_acc:  # if current epoch's mean val acc is greater than the saved best val acc then
-            #     self.best_val_model_acc = val_mean_accuracy  # set the best val model acc to be current epoch's val accuracy
-            #     self.best_val_model_idx = epoch_idx  # set the experiment-wise best val idx to be the current epoch's idx
+            if precision_mean > self.best_val_model_precision:
+                self.best_val_model_precision = precision_mean
+                self.best_val_model_idx = epoch_idx
 
             self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
+            self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
+            self.writer.add_scalar('Precision', precision_mean, epoch_idx)
+            self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
 
-            # TODO: Validation and testing
-            # TODO: Saving model per epoch
+            print(f'HR: {hr_mean}, Precision: {precision_mean}, Recall: {cat_cov_mean}')
+
+            self.state['current_epoch_idx'] = epoch_idx
+            self.state['best_val_model_precision'] = self.best_val_model_precision
+            self.state['best_val_model_idx'] = self.best_val_model_idx
+
+            self.save_model(model_save_dir=self.experiment_saved_models,
+                            model_save_name="train_model", model_idx=epoch_idx, state=self.state)
+            self.save_model(model_save_dir=self.experiment_saved_models,
+                            model_save_name="train_model", model_idx='latest', state=self.state)
+
+        print(f"Generating test set evaluation metrics, best model on validation was Epoch {self.best_val_model_idx}")
+
+        self.load_model(model_save_dir=self.experiment_saved_models, model_idx=self.best_val_model_idx,
+                        model_save_name="train_model")
+
+        hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.test_loader)
+
+        self.writer.add_scalar('Test: Hit Ratio', hr_mean)
+        self.writer.add_scalar('Test: Precision', precision_mean)
+        self.writer.add_scalar('Test: Category Coverage', cat_cov_mean)
+
+        print(f'HR: {hr_mean}, Precision: {precision_mean}, Recall: {cat_cov_mean}')
+
