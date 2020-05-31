@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 from torch.optim.adam import Adam
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import hit_ratio, precision
+from utils.evaluation_metrics import hit_ratio, precision, category_coverage
 
 import numpy as np
 import os
@@ -162,11 +162,13 @@ class ExperimentBuilder(nn.Module, ABC):
                     predicted_slates.append(predicted_slate)
                     ground_truth_slates.append(ground_truth_slate)
 
+                    pbar_val.update(1)
+
                 predicted_slates = torch.cat(predicted_slates, dim=0).cpu()
                 ground_truth_slates = torch.cat(ground_truth_slates, dim=0).cpu()
 
         return hit_ratio(predicted_slates, ground_truth_slates), precision(predicted_slates, ground_truth_slates), \
-               np.random.randint(0, 1)
+               category_coverage(predicted_slates, self.train_loader)
 
     def run_experiment(self):
         # Save hyper-parameters
@@ -183,8 +185,10 @@ class ExperimentBuilder(nn.Module, ABC):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             self.pre_epoch_init_function()
 
-            # average_loss = self.run_training_epoch()
-            avg_loss, avg_precision, avg_hit_rate = self.run_validation_epoch()
+            average_loss = self.run_training_epoch()
+            hr, pre, cat_cov = self.run_validation_epoch()
+
+            print(hr, pre, cat_cov)
 
             # val_mean_accuracy = np.mean(current_epoch_losses['val_acc'])
 

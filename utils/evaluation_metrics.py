@@ -33,5 +33,23 @@ def category_coverage(predicted_slates, train_loader):
     :param train_loader: The is needed so that we can convert movie indexes to movie ids to extract categories
     :return:
     """
+    category_coverage = 0.0
 
-    pass
+    for predicted_slate in list(predicted_slates):
+        movie_ids = np.array(list(map(lambda movie_index: train_loader.dataset.train_matrix.columns[movie_index],
+                                      predicted_slate)))
+
+        movie_category = train_loader.dataset.movies_categories
+
+        slate_genres = []
+
+        for movie_id in movie_ids:
+            movie_genres = movie_category.loc[movie_id]
+
+            slate_genres.extend(movie_genres[movie_genres == 1].index.tolist())
+
+        unique_genres = set(slate_genres)
+
+        category_coverage += (len(unique_genres) / (1.0 * len(movie_category.columns)))
+
+    return category_coverage / (1.0 * predicted_slates.size(0))

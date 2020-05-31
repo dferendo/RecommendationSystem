@@ -55,7 +55,7 @@ def experiments_run():
     df_train, df_val, df_test, df_train_matrix, df_val_matrix, df_test_matrix = split_dataset(configs)
     movies_categories = load_movie_categories(configs)
 
-    train_dataset = PointwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], True)
+    train_dataset = PointwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], movies_categories, True)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 

@@ -7,9 +7,11 @@ class PointwiseDataLoader(Dataset):
     For pointwise sampling, we follow the paper https://arxiv.org/pdf/1708.05031.pdf where we will uniformly sample
     negative samples using unobserved interactions using a ratio.
     """
-    def __init__(self, training_examples, train_matrix, neg_sample_per_training_example, is_training):
+    def __init__(self, training_examples, train_matrix, neg_sample_per_training_example, movies_categories,
+                 is_training):
         self.training_examples = training_examples
         self.train_matrix = train_matrix
+        self.movies_categories = movies_categories
         self.neg_sample_per_training_example = neg_sample_per_training_example
         self.is_training = is_training
         self.all_movies_that_can_be_sampled = np.array(train_matrix.columns)
