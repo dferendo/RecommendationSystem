@@ -197,7 +197,7 @@ class ExperimentBuilder(nn.Module, ABC):
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
 
-            print(f'HR: {hr_mean}, Precision: {precision_mean}, Recall: {cat_cov_mean}')
+            print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
 
             self.state['current_epoch_idx'] = epoch_idx
             self.state['best_val_model_precision'] = self.best_val_model_precision
@@ -215,9 +215,11 @@ class ExperimentBuilder(nn.Module, ABC):
 
         hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.test_loader)
 
-        self.writer.add_scalar('Test: Hit Ratio', hr_mean)
-        self.writer.add_scalar('Test: Precision', precision_mean)
-        self.writer.add_scalar('Test: Category Coverage', cat_cov_mean)
+        self.writer.add_scalar('Test: Hit Ratio', hr_mean, 0)
+        self.writer.add_scalar('Test: Precision', precision_mean, 0)
+        self.writer.add_scalar('Test: Category Coverage', cat_cov_mean, 0)
 
-        print(f'HR: {hr_mean}, Precision: {precision_mean}, Recall: {cat_cov_mean}')
+        print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
 
+        self.writer.flush()
+        self.writer.close()
