@@ -3,6 +3,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from pandas.api.types import CategoricalDtype
 import torch.utils.data as data
+import os
 
 
 def get_sparse_df(df):
@@ -28,8 +29,10 @@ def get_sparse_df(df):
 
 
 def split_dataset(configs):
+    ratings_location = os.path.join(configs['data_location'], 'ratings.csv')
+
     # Loading
-    df_all = pd.read_csv(configs['data_location'], dtype={'userId': np.int32, 'movieId': np.int32})
+    df_all = pd.read_csv(ratings_location, dtype={'userId': np.int32, 'movieId': np.int32})
 
     # Make dataset implicit (ie User had interaction/User did not have interaction)
     df_all = df_all[df_all['rating'] >= configs['implicit_rating']]
@@ -59,3 +62,36 @@ def split_dataset(configs):
     df_val = df_val.loc[df_val['movieId'].isin(df_train['movieId'].unique())]
 
     return df_train, df_val, df_test, get_sparse_df(df_train), get_sparse_df(df_val), get_sparse_df(df_test)
+
+
+def load_movie_categories(configs):
+    movies_categories_location = os.path.join(configs['data_location'], 'movies.csv')
+
+    # Loading
+    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'genres': np.str})
+    # A movie can have multiple genres and each genre is seperate by a '|'
+    split_genres_to_list = df_all['genres'].str.split('|')
+
+    # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
+    genres_per_row = split_genres_to_list.explode()
+
+    df_genres = pd.DataFrame({'movieId': genres_per_row.index, 'genre': genres_per_row.values})
+    df_genres['hit'] = 1
+
+    # Convert to a 2-d matrix
+    movies_category = CategoricalDtype(sorted(df_genres['movieId'].unique()), ordered=True)
+    genres_category = CategoricalDtype(sorted(df_genres['genre'].unique()), ordered=True)
+
+    row = df_genres['movieId'].astype(movies_category).cat.codes
+    col = df_genres['genre'].astype(genres_category).cat.codes
+
+    sparse_matrix = csr_matrix((df_genres['hit'], (row, col)),
+                               shape=(movies_category.categories.size, genres_category.categories.size))
+
+    sparse_df = pd.DataFrame.sparse.from_spmatrix(sparse_matrix, index=movies_category.categories,
+                                                  columns=genres_category.categories)
+
+    # Drop this column
+    sparse_df = sparse_df.drop('(no genres listed)', 1)
+
+    return sparse_df

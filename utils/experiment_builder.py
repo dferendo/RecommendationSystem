@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 from torch.optim.adam import Adam
 from torch.utils.tensorboard import SummaryWriter
+from utils.evaluation_metrics import hit_ratio, precision
 
 import numpy as np
 import os
@@ -149,6 +150,8 @@ class ExperimentBuilder(nn.Module, ABC):
 
     def run_validation_epoch(self):
         self.model.eval()
+        predicted_slates = []
+        ground_truth_slates = []
 
         with torch.no_grad():
             with tqdm.tqdm(total=len(self.validation_loader), file=sys.stdout) as pbar_val:
@@ -156,9 +159,14 @@ class ExperimentBuilder(nn.Module, ABC):
                     predicted_slate = self.forward_model_test(values_to_unpack)
                     ground_truth_slate = values_to_unpack[2].cuda()
 
-                    print(predicted_slate, ground_truth_slate)
+                    predicted_slates.append(predicted_slate)
+                    ground_truth_slates.append(ground_truth_slate)
 
-        return np.random.randint(0, 1), np.random.randint(0, 1), np.random.randint(0, 1)
+                predicted_slates = torch.cat(predicted_slates, dim=0).cpu()
+                ground_truth_slates = torch.cat(ground_truth_slates, dim=0).cpu()
+
+        return hit_ratio(predicted_slates, ground_truth_slates), precision(predicted_slates, ground_truth_slates), \
+               np.random.randint(0, 1)
 
     def run_experiment(self):
         # Save hyper-parameters

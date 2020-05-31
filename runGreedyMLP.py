@@ -1,5 +1,5 @@
 from utils.arg_parser import extract_args_from_json
-from utils.data_provider import split_dataset
+from utils.data_provider import split_dataset, load_movie_categories
 from utils.reset_seed import set_seeds
 from models import GreedyMLP
 from dataloaders.PointwiseDataLoader import PointwiseDataLoader, PointwiseDataLoaderTest
@@ -53,6 +53,7 @@ def experiments_run():
     set_seeds(configs['seed'])
 
     df_train, df_val, df_test, df_train_matrix, df_val_matrix, df_test_matrix = split_dataset(configs)
+    movies_categories = load_movie_categories(configs)
 
     train_dataset = PointwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], True)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
