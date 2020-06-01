@@ -13,8 +13,6 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
     all_samples = []
 
-    count = 0
-
     for user_id, user_interactions in grouped_users.items():
         # Get the possible index of movieIds that we can sample for this user
         movies_with_no_interactions_with_user = np.setxor1d(all_movies_that_can_be_sampled, user_interactions)
@@ -69,11 +67,6 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
             all_samples.append(sample)
 
-        if count > 2:
-            break
-
-        count += 1
-
     return np.vstack(all_samples)
 
 
@@ -82,6 +75,8 @@ if __name__ == '__main__':
     configs = extract_args_from_json()
     set_seeds(configs['seed'])
 
+    start = time.process_time()
+
     df_train, df_val, df_test, df_train_matrix, df_val_matrix, df_test_matrix = split_dataset(configs)
     movies_categories = load_movie_categories(configs)
 
@@ -89,5 +84,7 @@ if __name__ == '__main__':
                                        configs['negative_sampling_for_slates'])
 
     save_file = os.path.join(configs['save_location'], 'train_sf_{}.npy'.format(configs['slate_size']))
+
+    print("Time taken in seconds: ", time.process_time() - start)
 
     np.save(save_file, samples.astype(int))
