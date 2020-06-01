@@ -1,6 +1,6 @@
 {
   "seed": 100,
-  "data_location": "../dataset/ml-latest-small/",
+  "data_location": "../dataset/ml-25m/",
   "implicit_rating": 4,
   "validation_set_size": 0.1,
   "test_set_size": 0.1,
@@ -9,5 +9,5 @@
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
-  "save_location": "../dataset/ml-latest-small/"
+  "save_location": "../dataset/ml-25m/"
 }
