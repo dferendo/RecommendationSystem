@@ -1,0 +1,18 @@
+{
+  "experiment_name": "GreedyMLP/experiment_1",
+  "seed": 100,
+  "data_location": "./dataset/ml-latest-small/",
+  "implicit_rating": 4,
+  "validation_set_size": 0.1,
+  "test_set_size": 0.1,
+  "minimum_user_interaction": 5,
+  "use_gpu": true,
+  "save_model": true,
+  "continue_from_epoch": -1,
+  "use_bias": true,
+
+  "__comment": "Slate Generation Hyper Parameters",
+  "slate_size": 6,
+  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
+  "recompute_negative_sample_per_epoch": true
+}
