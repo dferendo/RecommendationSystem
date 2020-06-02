@@ -18,10 +18,8 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
     with tqdm.tqdm(total=len(grouped_users), file=sys.stdout) as pbar:
         for user_id, user_interactions in grouped_users.items():
-            # TODO: This should already be done when splitting the dataset
             if len(user_interactions) <= slate_size:
                 continue
-            # assert len(user_interactions) > slate_size
 
             # Get the possible index of movieIds that we can sample for this user
             movies_with_no_interactions_with_user = np.setxor1d(all_movies_that_can_be_sampled, user_interactions)
@@ -90,7 +88,7 @@ if __name__ == '__main__':
 
     start = time.process_time()
 
-    df_train, df_val, df_test, df_train_matrix, df_val_matrix, df_test_matrix = split_dataset(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix = split_dataset(configs)
     movies_categories = load_movie_categories(configs)
 
     samples = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
