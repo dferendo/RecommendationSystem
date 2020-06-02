@@ -9,14 +9,15 @@ from torch.utils.data import DataLoader
 import torch
 import os
 import pandas as pd
+import time
 
 
 def experiments_run():
     configs = extract_args_from_json()
     set_seeds(configs['seed'])
 
-    # df_train, df_test, df_train_matrix, df_test_matrix = split_dataset(configs)
-    # movies_categories = load_movie_categories(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix = split_dataset(configs)
+    movies_categories = load_movie_categories(configs)
 
     slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
                                                          '-'.join(str(e) for e in configs['negative_sampling_for_slates']),
@@ -31,12 +32,18 @@ def experiments_run():
                                                    configs['negative_sampling_for_slates'],
                                                    slate_formation_file_location)
 
-    train_dataset = SlateFormationDataLoader(slate_formation)
+    train_dataset = SlateFormationDataLoader(slate_formation, df_train_matrix)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
+    start = time.time()
+
     for idx, values_to_unpack in enumerate(train_loader):
         print(values_to_unpack)
+        continue
+
+    end = time.time()
+    print(end - start)
 
 
 if __name__ == '__main__':

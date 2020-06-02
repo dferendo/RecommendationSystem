@@ -33,7 +33,7 @@ class SlateFormationDataLoader(Dataset):
         user_interactions = self.user_interactions_values[idx]
         one_hot = np.zeros((self.number_of_movies,), dtype=int)
 
-        for user_interaction in user_interactions:
-            one_hot[user_interaction] = 1
+        # TODO: If this is slow, create a spare matrix in the init function
+        np.put(one_hot, user_interactions, np.ones(len(user_interactions)))
 
         return self.user_index[idx], one_hot, self.slate_vector_matrix[idx], self.response_vector_matrix[idx]
