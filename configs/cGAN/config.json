@@ -7,14 +7,15 @@
   "test_set_size": 0.15,
   "minimum_user_interaction": 10,
   "minimum_movie_interaction": 100,
-  "is_training": false,
+  "is_training": true,
   "use_gpu": true,
   "save_model": true,
   "continue_from_epoch": -1,
   "use_bias": true,
+  "batch_size": 128,
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
-  "recompute_negative_sample_per_epoch": true
+  "save_location": "./dataset/ml-25m/"
 }

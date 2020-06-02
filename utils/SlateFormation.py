@@ -9,7 +9,24 @@ import tqdm
 import sys
 
 
-def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates):
+def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates,
+                             save_location):
+    """
+    Return the slates. Each slate has a user_id followed by a slate containing
+    *slate_size* movie_ids, *slate_size* response vector (whether the user had an interaction or not) and the user
+    interactions. All values are in index form (no ids).
+    :param row_interactions: All the interactions between users and movies. Each value contains user_id, movie_id,
+    rating and timestamp.
+    :param user_movie_matrix: [user_id, movie_id] Sparse DataFrame matrix where user_id are the rows and movie_id
+    are the columns. The value of each [user_id, movie_id] is whether there are an interaction.
+    :param slate_size: The size of the slate
+    :param negative_sampling_for_slates: This is an array where each element indicates how many negative examples
+    per slate.
+    :param save_location: Where to save the slates.
+    """
+    print("Generating slate formation.....")
+    start = time.process_time()
+
     all_movies_that_can_be_sampled = np.array(user_movie_matrix.columns)
 
     grouped_users = row_interactions.groupby(['userId'])['movieId'].apply(list)
@@ -19,6 +36,7 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
     with tqdm.tqdm(total=len(grouped_users), file=sys.stdout) as pbar:
         for user_id, user_interactions in grouped_users.items():
             if len(user_interactions) <= slate_size:
+                pbar.update(1)
                 continue
 
             # Get the possible index of movieIds that we can sample for this user
@@ -77,25 +95,8 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
             pbar.update(1)
 
     df = pd.DataFrame(all_samples, columns=['User Index', 'User Interactions', 'Slate Movies', 'Response Vector'])
-
-    return df
-
-
-if __name__ == '__main__':
-    print("Generating slate formation.....")
-    configs = extract_args_from_json()
-    set_seeds(configs['seed'])
-
-    start = time.process_time()
-
-    df_train, df_test, df_train_matrix, df_test_matrix = split_dataset(configs)
-    movies_categories = load_movie_categories(configs)
-
-    samples = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
-                                       configs['negative_sampling_for_slates'])
-
-    save_file = os.path.join(configs['save_location'], 'train_sf_{}.csv'.format(configs['slate_size']))
+    df.to_csv(save_location, index=False)
 
     print("Time taken in seconds: ", time.process_time() - start)
 
-    samples.to_csv(save_file, index=False)
+    return df
