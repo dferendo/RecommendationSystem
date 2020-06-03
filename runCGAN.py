@@ -36,15 +36,6 @@ def experiments_run():
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    start = time.time()
-
-    for idx, values_to_unpack in enumerate(train_loader):
-        print(values_to_unpack)
-        continue
-
-    end = time.time()
-    print(end - start)
-
 
 if __name__ == '__main__':
     experiments_run()
