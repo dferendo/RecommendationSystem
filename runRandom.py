@@ -52,9 +52,9 @@ def experiments_run():
 
     predicted_slates = torch.cat(predicted_slates, dim=0)
 
-    print(hit_ratio(predicted_slates, grouped_ground_truth))
-    print(precision(predicted_slates, grouped_ground_truth))
-    print(category_coverage(predicted_slates, movies_categories))
+    print("Recall: ", hit_ratio(predicted_slates, grouped_ground_truth))
+    print("Precision: ", precision(predicted_slates, grouped_ground_truth))
+    print("Category Coverage: ", category_coverage(predicted_slates, movies_categories))
 
 
 if __name__ == '__main__':

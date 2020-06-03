@@ -1,6 +1,6 @@
 {
   "experiment_name": "Random/experiment_1",
-  "seed": 101,
+  "seed": 9023912,
   "is_training": false,
   "use_gpu": true,
   "save_model": false,
@@ -15,7 +15,6 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Model Parameters",
-  "num_of_epochs": 1,
   "slate_size": 6,
   "test_batch_size": 128
 }
