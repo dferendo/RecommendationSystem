@@ -33,6 +33,8 @@ def experiments_run():
             # The slate contains the indexes of the movies selected (Not movie Ids)
             predicted_slate = model.forward()
 
+            predicted_slates.append(predicted_slate)
+
             # The interactions are returned as an array (size == amount of movies) where the interactions between
             # user and movie is assigned a 1, otherwise 0.
             ground_truth_indexes = np.nonzero(ground_truth_interactions)
@@ -42,7 +44,6 @@ def experiments_run():
             grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                             np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
 
-            predicted_slates.append(predicted_slate)
             # Extend is needed here since we cannot concat (Ground truth not the same dimensions), thus we will
             # have a list of tensors with different dimensions
             ground_truth_slates.extend(grouped_ground_truth)

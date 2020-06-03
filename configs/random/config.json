@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-latest-small/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -17,7 +17,5 @@
   "__comment": "Model Parameters",
   "num_of_epochs": 1,
   "slate_size": 6,
-  "batch_size": 1,
-  "test_batch_size": 5,
-  "optimizer": "None"
+  "test_batch_size": 128
 }
