@@ -1,7 +1,4 @@
 import numpy as np
-"""
-TODO: Vectorize the following functions
-"""
 
 
 def hit_ratio(predicted_slates, ground_truths):
@@ -26,30 +23,27 @@ def precision(predicted_slates, ground_truths):
     return precision_score / (1.0 * predicted_slates.size(0))
 
 
-def category_coverage(predicted_slates, train_loader):
+def category_coverage(predicted_slates, movies_categories):
     """
-
+    This ASSUMES that the predicted slates and in index form (ie index of the movie).
     :param predicted_slates:
-    :param train_loader: The is needed so that we can convert movie indexes to movie ids to extract categories
+    :param movies_categories:
     :return:
     """
-    category_coverage = 0.0
+    cat_coverage = 0.0
 
     for predicted_slate in list(predicted_slates):
-        movie_ids = np.array(list(map(lambda movie_index: train_loader.dataset.train_matrix.columns[movie_index],
-                                      predicted_slate)))
-
-        movie_category = train_loader.dataset.movies_categories
-
         slate_genres = []
 
-        for movie_id in movie_ids:
-            movie_genres = movie_category.loc[movie_id]
+        for movie_index in predicted_slate:
+            # Since movie_index is a tensor
+            movie_index = movie_index.item()
+
+            movie_genres = movies_categories.iloc[movie_index]
 
             slate_genres.extend(movie_genres[movie_genres == 1].index.tolist())
 
         unique_genres = set(slate_genres)
+        cat_coverage += (len(unique_genres) / (1.0 * len(movies_categories.columns)))
 
-        category_coverage += (len(unique_genres) / (1.0 * len(movie_category.columns)))
-
-    return category_coverage / (1.0 * predicted_slates.size(0))
+    return cat_coverage / (1.0 * predicted_slates.size(0))

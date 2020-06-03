@@ -13,17 +13,18 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilder(nn.Module, ABC):
-    def __init__(self, model, train_loader, validation_loader, test_loader, configs, print_learnable_parameters=True):
+    def __init__(self, model, train_loader, evaluation_loader, configs, print_learnable_parameters=True):
         super(ExperimentBuilder, self).__init__()
         self.configs = configs
         self.model = model
         self.model.reset_parameters()
 
         self.train_loader = train_loader
-        self.validation_loader = validation_loader
-        self.test_loader = test_loader
+        self.evaluation_loader = evaluation_loader
 
-        self.optimizer = Adam(self.parameters(), amsgrad=False, weight_decay=configs['weight_decay'])
+        if configs['optimizer'] == "Adam":
+            self.optimizer = Adam(self.parameters(), amsgrad=False, weight_decay=configs['weight_decay'])
+
         self.device = torch.cuda.current_device()
 
         if print_learnable_parameters:

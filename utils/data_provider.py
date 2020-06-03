@@ -5,15 +5,16 @@ from pandas.api.types import CategoricalDtype
 import os
 
 
-def get_sparse_df(df):
+def get_sparse_df(df, all_movies_in_train):
     """
     Note: This process is done to conserve memory. If memory is not an issue, simply use pivot
     (Ie df.pivot(index='userId', columns='movieId', values='rating').fillna(0))
+    :param all_movies_in_train: This is needed so that the train/test will have the same amount of columns
     :param df:
     :return:
     """
     users_category = CategoricalDtype(sorted(df['userId'].unique()), ordered=True)
-    movies_category = CategoricalDtype(sorted(df['movieId'].unique()), ordered=True)
+    movies_category = CategoricalDtype(sorted(all_movies_in_train), ordered=True)
 
     row = df['userId'].astype(users_category).cat.codes
     col = df['movieId'].astype(movies_category).cat.codes
@@ -23,6 +24,43 @@ def get_sparse_df(df):
 
     sparse_df = pd.DataFrame.sparse.from_spmatrix(sparse_matrix, index=users_category.categories,
                                                   columns=movies_category.categories)
+
+    return sparse_df
+
+
+def load_movie_categories(configs, all_movies_in_train):
+    movies_categories_location = os.path.join(configs['data_location'], 'movies.csv')
+
+    # Loading
+    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'genres': np.str})
+
+    # A movie can have multiple genres and each genre is seperate by a '|'
+    df_all['genres'] = df_all['genres'].str.split('|')
+
+    # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
+    df_all = df_all.explode('genres')
+    df_all['hit'] = 1
+
+    genres_unique = df_all['genres'].unique()
+
+    # Keep only the movies that are found in the training examples so that the indexes match
+    df_all = df_all[df_all['movieId'].isin(all_movies_in_train)]
+
+    # Convert to a 2-d matrix
+    movies_category = CategoricalDtype(sorted(all_movies_in_train), ordered=True)
+    genres_category = CategoricalDtype(sorted(genres_unique), ordered=True)
+
+    row = df_all['movieId'].astype(movies_category).cat.codes
+    col = df_all['genres'].astype(genres_category).cat.codes
+
+    sparse_matrix = csr_matrix((df_all['hit'], (row, col)),
+                               shape=(movies_category.categories.size, genres_category.categories.size))
+
+    sparse_df = pd.DataFrame.sparse.from_spmatrix(sparse_matrix, index=movies_category.categories,
+                                                  columns=genres_category.categories)
+
+    # Drop this column
+    sparse_df = sparse_df.drop('(no genres listed)', 1)
 
     return sparse_df
 
@@ -74,37 +112,10 @@ def split_dataset(configs):
     # Remove any movies that do not appear in the training set from the test set
     df_test = df_test.loc[df_test['movieId'].isin(df_train['movieId'].unique())]
 
-    return df_train, df_test, get_sparse_df(df_train), get_sparse_df(df_test)
+    # This is needed so that the train/test will have the same amount of columns
+    all_movies_in_train = df_train['movieId'].unique()
 
+    movies_categories = load_movie_categories(configs, all_movies_in_train)
 
-def load_movie_categories(configs):
-    movies_categories_location = os.path.join(configs['data_location'], 'movies.csv')
-
-    # Loading
-    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'genres': np.str})
-    # A movie can have multiple genres and each genre is seperate by a '|'
-    split_genres_to_list = df_all['genres'].str.split('|')
-
-    # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
-    genres_per_row = split_genres_to_list.explode()
-
-    df_genres = pd.DataFrame({'movieId': genres_per_row.index, 'genre': genres_per_row.values})
-    df_genres['hit'] = 1
-
-    # Convert to a 2-d matrix
-    movies_category = CategoricalDtype(sorted(df_genres['movieId'].unique()), ordered=True)
-    genres_category = CategoricalDtype(sorted(df_genres['genre'].unique()), ordered=True)
-
-    row = df_genres['movieId'].astype(movies_category).cat.codes
-    col = df_genres['genre'].astype(genres_category).cat.codes
-
-    sparse_matrix = csr_matrix((df_genres['hit'], (row, col)),
-                               shape=(movies_category.categories.size, genres_category.categories.size))
-
-    sparse_df = pd.DataFrame.sparse.from_spmatrix(sparse_matrix, index=movies_category.categories,
-                                                  columns=genres_category.categories)
-
-    # Drop this column
-    sparse_df = sparse_df.drop('(no genres listed)', 1)
-
-    return sparse_df
+    return df_train, df_test, get_sparse_df(df_train, all_movies_in_train), \
+           get_sparse_df(df_test, all_movies_in_train), movies_categories
