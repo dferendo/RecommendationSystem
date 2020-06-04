@@ -1,9 +1,20 @@
 {
-  "seed": 100,
-  "data_location": "./dataset/ml-latest-small/ratings.csv",
+  "experiment_name": "Random/experiment_1",
+  "seed": 9023912,
+  "is_training": false,
+  "use_gpu": true,
+  "save_model": false,
+  "continue_from_epoch": -1,
+
+  "__comment": "Dataset Parameters",
+  "data_location": "./dataset/ml-latest-small/",
+  "implicit_rating": 0,
+  "validation_set_size": 0.15,
+  "test_set_size": 0.15,
+  "minimum_user_interaction": 10,
+  "minimum_movie_interaction": 100,
+
+  "__comment": "Model Parameters",
   "slate_size": 6,
-  "implicit_rating": 4,
-  "validation_set_size": 0.1,
-  "test_set_size": 0.1,
-  "minimum_user_interaction": 5
+  "test_batch_size": 128
 }
