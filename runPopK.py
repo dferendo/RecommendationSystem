@@ -22,7 +22,6 @@ def experiments_run():
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'],
                              shuffle=True, num_workers=4, drop_last=True)
 
-    all_movies = np.arange(len(df_train_matrix.columns))
     model = PopularKSlateGeneration(configs['slate_size'], df_train, configs['test_batch_size'])
 
     predicted_slates = []

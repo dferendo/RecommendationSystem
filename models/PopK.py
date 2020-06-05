@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 class PopularKSlateGeneration:
@@ -15,6 +16,7 @@ class PopularKSlateGeneration:
             .head(self.slate_size)\
             .index.tolist()
 
-    def forward(self):
-        return np.random.choice(self.movies_list, self.slate_size)
+        self.batched_popK = torch.from_numpy(np.tile(popK, (self.batch_size, 1)))
 
+    def forward(self):
+        return self.batched_popK
