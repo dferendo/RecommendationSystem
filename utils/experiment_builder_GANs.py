@@ -12,22 +12,28 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilder(nn.Module, ABC):
-    def __init__(self, model, train_loader, evaluation_loader, configs, print_learnable_parameters=True):
+    def __init__(self, generator, discriminator, train_loader, evaluation_loader, configs,
+                 print_learnable_parameters=True):
         super(ExperimentBuilder, self).__init__()
         self.configs = configs
-        self.model = model
-        self.model.reset_parameters()
+
+        self.generator = generator
+        self.discriminator = discriminator
+
+        self.generator.reset_parameters()
+        self.discriminator.reset_parameters()
 
         self.train_loader = train_loader
         self.evaluation_loader = evaluation_loader
-        self.optimizer = None
 
         self.device = torch.cuda.current_device()
+        self.set_device(configs['use_gpu'])
+
+        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=configs['learning_rate_gen'])
+        self.optimizer_dis = torch.optim.Adam(self.discriminator.parameters(), lr=configs['learning_rate_dis'])
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)
-
-        self.set_device(configs['use_gpu'])
 
         # Saving runs
         self.experiment_folder = "runs/{0}".format(configs['experiment_name'])
@@ -66,12 +72,19 @@ class ExperimentBuilder(nn.Module, ABC):
     def set_device(self, use_gpu):
         if torch.cuda.device_count() > 1 and use_gpu:
             self.device = torch.cuda.current_device()
-            self.model.to(self.device)
-            self.model = nn.DataParallel(module=self.model)
+
+            self.generator.to(self.device)
+            self.discriminator.to(self.device)
+
+            self.generator = nn.DataParallel(module=self.generator)
+            self.discriminator = nn.DataParallel(module=self.discriminator)
             print('Use Multi GPU', self.device)
         elif torch.cuda.device_count() == 1 and use_gpu:
             self.device = torch.cuda.current_device()
-            self.model.to(self.device)  # sends the model from the cpu to the gpu
+
+            self.generator.to(self.device)
+            self.discriminator.to(self.device)
+
             print('Use GPU', self.device)
         else:
             print("use CPU")
@@ -91,14 +104,6 @@ class ExperimentBuilder(nn.Module, ABC):
     def save_model(self, model_save_dir, model_save_name, model_idx, state):
         state['network'] = self.state_dict()
         torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
-
-    @abstractmethod
-    def init_function(self):
-        """
-        Declares any require variables, such as optimizer.
-        :return:
-        """
-        pass
 
     @abstractmethod
     def pre_epoch_init_function(self):

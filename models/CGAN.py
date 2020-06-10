@@ -74,6 +74,13 @@ class Generator(nn.Module):
 
         return layers
 
+    def reset_parameters(self):
+        """
+        TODO
+        Re-initializes the networks parameters
+        """
+        pass
+
 
 class Discriminator(nn.Module):
     def __init__(self, num_of_movies, slate_size, embed_dims, hidden_layers_dims):
@@ -125,3 +132,10 @@ class Discriminator(nn.Module):
         layers.append(nn.LeakyReLU(0.01, inplace=True))
 
         return layers
+
+    def reset_parameters(self):
+        """
+        TODO
+        Re-initializes the networks parameters
+        """
+        pass

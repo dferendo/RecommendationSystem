@@ -19,11 +19,17 @@
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
   "save_location": "./dataset/ml-latest-small/",
 
-  "__comment": "Model Parameters",
+  "__comment": "Model Parameters All",
   "train_batch_size": 52,
   "test_batch_size": 128,
   "embed_dims": 20,
+
+  "__comment": "Generator Parameters",
   "noise_hidden_dims": 20,
   "hidden_layers_dims_gen": [20, 40, 60],
-  "hidden_layers_dims_dis": [512, 512, 512]
+  "learning_rate_gen": 0.0002,
+
+  "__comment": "Discriminator Parameters",
+  "hidden_layers_dims_dis": [512, 512, 512],
+  "learning_rate_dis": 0.0002
 }

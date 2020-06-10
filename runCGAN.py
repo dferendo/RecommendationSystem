@@ -6,22 +6,6 @@ from dataloaders.SlateFormation import SlateFormationDataLoader
 from torch.utils.data import DataLoader
 import os
 import pandas as pd
-from utils.experiment_builder import ExperimentBuilder
-
-
-class GreedyMLPExperimentBuilder(ExperimentBuilder):
-
-    def pre_epoch_init_function(self):
-        pass
-
-    def loss_function(self, values):
-        pass
-
-    def forward_model_training(self, values_to_unpack):
-        pass
-
-    def forward_model_test(self, values_to_unpack):
-        pass
 
 
 def get_data_loaders(configs):
@@ -55,7 +39,7 @@ def experiments_run():
     train_loader = get_data_loaders(configs)
 
     for values in train_loader:
-        print(values)
+        print(values[0])
 
 
 
