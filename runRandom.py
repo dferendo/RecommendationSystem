@@ -1,7 +1,7 @@
 from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
-from dataloaders.RandomDataLoader import NoAdditionalInfoTestDataLoader
+from dataloaders.TestDataLoader import NoAdditionalInfoTestDataLoader
 from models.Random import RandomSlateGeneration
 from utils.evaluation_metrics import hit_ratio, precision, category_coverage
 

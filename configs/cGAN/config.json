@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-latest-small/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -17,7 +17,7 @@
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
   "negative_sampling_for_slates": [0],
-  "save_location": "./dataset/ml-25m/",
+  "save_location": "./dataset/ml-latest-small/",
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 100,

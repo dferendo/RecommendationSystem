@@ -109,15 +109,15 @@ def experiments_run():
 
     train_loader = get_data_loaders(configs)
 
-    generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
-
-    discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                                  configs['hidden_layers_dims_dis'])
-
-    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
-                                                            print_learnable_parameters=False)
-    experiment_builder.run_experiment()
+    # generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
+    #                       configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
+    #
+    # discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
+    #                               configs['hidden_layers_dims_dis'])
+    #
+    # experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
+    #                                                         print_learnable_parameters=False)
+    # experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':

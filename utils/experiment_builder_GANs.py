@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import hit_ratio, precision, category_coverage
+from utils.evaluation_metrics import precision_hit_ratio, category_coverage
 
 import numpy as np
 import os
@@ -143,7 +143,8 @@ class ExperimentBuilderGAN(nn.Module, ABC):
     def run_training_epoch(self):
         self.generator.train()
         self.discriminator.train()
-        all_losses = []
+        all_gen_losses = []
+        all_dis_losses = []
 
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
@@ -152,14 +153,17 @@ class ExperimentBuilderGAN(nn.Module, ABC):
 
                 loss_gen, loss_dis = self.train_iteration(values_to_unpack)
 
+                all_gen_losses.append(float(loss_gen))
+                all_dis_losses.append(float(loss_dis))
+
                 pbar.update(1)
                 pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
 
-        # return np.mean(all_losses)
-        return 0
+        return np.mean(all_gen_losses), np.mean(all_dis_losses)
 
     def run_evaluation_epoch(self, evaluation_loader):
-        self.model.eval()
+        self.generator.eval()
+        self.discriminator.eval()
         predicted_slates = []
         ground_truth_slates = []
 
@@ -177,8 +181,8 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                 predicted_slates = torch.cat(predicted_slates, dim=0).cpu()
                 ground_truth_slates = torch.cat(ground_truth_slates, dim=0).cpu()
 
-        return hit_ratio(predicted_slates, ground_truth_slates), precision(predicted_slates, ground_truth_slates), \
-               category_coverage(predicted_slates, self.train_loader)
+        return precision_hit_ratio(predicted_slates, ground_truth_slates)
+        # return precision_hit_ratio(predicted_slates, ground_truth_slates), category_coverage(predicted_slates, self.train_loader)
 
     def run_experiment(self):
         # Save hyper-parameters
@@ -195,14 +199,16 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             self.pre_epoch_init_function()
 
-            average_loss = self.run_training_epoch()
+            average_gen_loss, average_dis_loss = self.run_training_epoch()
         #     hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.validation_loader)
         #
         #     if precision_mean > self.best_val_model_precision:
         #         self.best_val_model_precision = precision_mean
         #         self.best_val_model_idx = epoch_idx
         #
-        #     self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
+            self.writer.add_scalar('Average training loss for generator in epoch', average_gen_loss, epoch_idx)
+            self.writer.add_scalar('Average training loss for discriminator in epoch', average_dis_loss, epoch_idx)
+
         #     self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
         #     self.writer.add_scalar('Precision', precision_mean, epoch_idx)
         #     self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
@@ -230,6 +236,6 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         # self.writer.add_scalar('Test: Category Coverage', cat_cov_mean, 0)
         #
         # print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
-        #
-        # self.writer.flush()
-        # self.writer.close()
+
+        self.writer.flush()
+        self.writer.close()
