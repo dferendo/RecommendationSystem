@@ -6,19 +6,28 @@ from utils.experiment_builder_GANs import ExperimentBuilderGAN
 from dataloaders.SlateFormation import SlateFormationDataLoader
 from models.CGAN import Generator, Discriminator
 
-from torch.utils.data import DataLoader
+import torch
 import os
 import pandas as pd
+from torch.utils.data import DataLoader
 
 
 class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
+    criterion = torch.nn.BCELoss()
+
     def pre_epoch_init_function(self):
         pass
 
     def loss_function(self, values):
         pass
 
-    def forward_model_training(self, values_to_unpack):
+    def train_iteration(self, values_to_unpack):
+        user_interactions_with_padding = values_to_unpack[1].cuda()
+        number_of_interactions_per_user = values_to_unpack[2].cuda()
+
+        print(user_interactions_with_padding)
+        print(number_of_interactions_per_user)
+
         pass
 
     def forward_model_test(self, values_to_unpack):
@@ -63,9 +72,7 @@ def experiments_run():
 
     experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
                                                             print_learnable_parameters=False)
-
-    # experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, test_loader, configs)
-    # experiment_builder.run_experiment()
+    experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':

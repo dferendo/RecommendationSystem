@@ -20,6 +20,7 @@
   "save_location": "./dataset/ml-latest-small/",
 
   "__comment": "Model Parameters All",
+  "num_of_epochs": 5,
   "train_batch_size": 52,
   "test_batch_size": 128,
   "embed_dims": 20,

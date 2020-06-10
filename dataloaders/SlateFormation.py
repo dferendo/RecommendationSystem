@@ -12,6 +12,7 @@ class SlateFormationDataLoader(Dataset):
         self.slate_vector_matrix = None
         self.response_vector_matrix = None
         self.user_interactions_values = None
+        self.longest_user_interaction = 0
 
         self.convert_to_vector_form()
 
@@ -26,14 +27,17 @@ class SlateFormationDataLoader(Dataset):
 
         self.user_interactions_values = self.slate_formations['User Interactions'].str.split('|').values
 
+        # Needed for padding so that every user has the same amount of interactions
+        self.longest_user_interaction = len(max(self.user_interactions_values, key=len))
+
     def __len__(self):
         return len(self.slate_formations)
 
     def __getitem__(self, idx):
-        user_interactions = self.user_interactions_values[idx]
-        one_hot = np.zeros((self.number_of_movies,), dtype=int)
+        user_interactions = np.array(self.user_interactions_values[idx]).astype(np.int32)
 
-        # TODO: If this is slow, create a spare matrix in the init function
-        np.put(one_hot, user_interactions, np.ones(len(user_interactions)))
+        # The padding idx is the *self.number_of_movies*
+        padded_interactions = np.full(self.number_of_movies, self.number_of_movies)
+        padded_interactions[0:len(user_interactions)] = user_interactions
 
-        return self.user_index[idx], one_hot, self.slate_vector_matrix[idx], self.response_vector_matrix[idx]
+        return self.user_index[idx], padded_interactions, len(user_interactions)

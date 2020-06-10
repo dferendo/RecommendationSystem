@@ -48,6 +48,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         self.best_val_model_idx = 0
         self.best_val_model_precision = 0.
 
+        # TODO: Saving/loading
         if configs['continue_from_epoch'] != -1:  # if continue from epoch is not -1 then
             self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model(
                 model_save_dir=self.experiment_saved_models, model_save_name="train_model",
@@ -122,7 +123,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         pass
 
     @abstractmethod
-    def forward_model_training(self, values_to_unpack):
+    def train_iteration(self, values_to_unpack):
         """
 
         :param values_to_unpack: Values obtained from the training data loader
@@ -139,13 +140,16 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         pass
 
     def run_training_epoch(self):
-        self.model.train()
+        self.generator.train()
+        self.discriminator.train()
         all_losses = []
 
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
-                self.model.zero_grad()
-                loss = self.forward_model_training(values_to_unpack)
+                self.generator.zero_grad()
+                self.discriminator.zero_grad()
+
+                loss = self.train_iteration(values_to_unpack)
 
                 self.optimizer.zero_grad()
                 loss.backward()
