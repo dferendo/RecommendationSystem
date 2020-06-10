@@ -3,7 +3,7 @@ from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
 from utils.SlateFormation import generate_slate_formation
 from utils.experiment_builder_GANs import ExperimentBuilderGAN
-from dataloaders.SlateFormation import SlateFormationDataLoader
+from dataloaders.SlateFormation import SlateFormationDataLoader, UserConditionedDataLoader
 from models.CGAN import Generator, Discriminator
 
 import torch
@@ -100,6 +100,11 @@ def get_data_loaders(configs):
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
+    test_dataset = UserConditionedDataLoader(df_test, df_test_matrix, df_train, df_train_matrix)
+
+    for i in test_dataset:
+        pass
+
     return train_loader
 
 
@@ -109,15 +114,15 @@ def experiments_run():
 
     train_loader = get_data_loaders(configs)
 
-    # generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-    #                       configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
-    #
-    # discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-    #                               configs['hidden_layers_dims_dis'])
-    #
-    # experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
-    #                                                         print_learnable_parameters=False)
-    # experiment_builder.run_experiment()
+    generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
+                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
+
+    discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
+                                  configs['hidden_layers_dims_dis'])
+
+    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
+                                                            print_learnable_parameters=False)
+    experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':
