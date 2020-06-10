@@ -11,10 +11,10 @@ import sys
 from abc import ABC, abstractmethod
 
 
-class ExperimentBuilder(nn.Module, ABC):
+class ExperimentBuilderGAN(nn.Module, ABC):
     def __init__(self, generator, discriminator, train_loader, evaluation_loader, configs,
                  print_learnable_parameters=True):
-        super(ExperimentBuilder, self).__init__()
+        super(ExperimentBuilderGAN, self).__init__()
         self.configs = configs
 
         self.generator = generator

@@ -1,11 +1,28 @@
 from utils.arg_parser import extract_args_from_json
-from utils.data_provider import split_dataset, load_movie_categories
+from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
 from utils.SlateFormation import generate_slate_formation
+from utils.experiment_builder_GANs import ExperimentBuilderGAN
 from dataloaders.SlateFormation import SlateFormationDataLoader
+from models.CGAN import Generator, Discriminator
+
 from torch.utils.data import DataLoader
 import os
 import pandas as pd
+
+
+class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
+    def pre_epoch_init_function(self):
+        pass
+
+    def loss_function(self, values):
+        pass
+
+    def forward_model_training(self, values_to_unpack):
+        pass
+
+    def forward_model_test(self, values_to_unpack):
+        pass
 
 
 def get_data_loaders(configs):
@@ -38,10 +55,17 @@ def experiments_run():
 
     train_loader = get_data_loaders(configs)
 
-    for values in train_loader:
-        print(values[0])
+    generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
+                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
 
+    discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
+                                  configs['hidden_layers_dims_dis'])
 
+    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
+                                                            print_learnable_parameters=False)
+
+    # experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, test_loader, configs)
+    # experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':
