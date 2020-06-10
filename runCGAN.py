@@ -22,19 +22,16 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         pass
 
     def train_iteration(self, values_to_unpack):
-        user_interactions_with_padding = values_to_unpack[1].cuda()
-        number_of_interactions_per_user = values_to_unpack[2].cuda()
-
-        self.optimizer_gen.zero_grad()
-
-        # Sample random noise
-        noise = torch.rand(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
-                           dtype=torch.float32, device=self.device)
-
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-
-        print(fake_slates.shape)
-
+        # user_interactions_with_padding = values_to_unpack[1].cuda()
+        # number_of_interactions_per_user = values_to_unpack[2].cuda()
+        #
+        # self.optimizer_gen.zero_grad()
+        #
+        # # Sample random noise
+        # noise = torch.rand(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
+        #                    dtype=torch.float32, device=self.device)
+        #
+        # fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
         pass
 
     def forward_model_test(self, values_to_unpack):
