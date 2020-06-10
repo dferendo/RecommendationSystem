@@ -13,7 +13,13 @@ from torch.utils.data import DataLoader
 
 
 class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
+    # Loss functions
     criterion = torch.nn.BCELoss()
+    # criterion = torch.nn.MSELoss()
+    # criterion = torch.nn.BCEWithLogitsLoss()
+
+    real_label = 1
+    fake_label = 0
 
     def pre_epoch_init_function(self):
         pass
@@ -22,17 +28,52 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         pass
 
     def train_iteration(self, values_to_unpack):
-        # user_interactions_with_padding = values_to_unpack[1].cuda()
-        # number_of_interactions_per_user = values_to_unpack[2].cuda()
-        #
-        # self.optimizer_gen.zero_grad()
-        #
-        # # Sample random noise
-        # noise = torch.rand(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
-        #                    dtype=torch.float32, device=self.device)
-        #
-        # fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        pass
+        user_interactions_with_padding = values_to_unpack[1].to(self.device)
+        number_of_interactions_per_user = values_to_unpack[2].to(self.device)
+        real_slates = values_to_unpack[3].to(self.device).float()
+
+        '''    
+        Update discriminator: maximize log(D(x)) + log(1 - D(G(z)))
+        '''
+        self.optimizer_dis.zero_grad()
+
+        output = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+
+        labels = torch.full((real_slates.shape[0], 1), self.real_label, device=self.device, dtype=torch.float32)
+        error_real_dis = self.criterion(output, labels)
+        error_real_dis.backward()
+
+        noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
+                            dtype=torch.float32, device=self.device)
+
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
+        output = self.discriminator(fake_slates.detach(), user_interactions_with_padding, number_of_interactions_per_user)
+
+        labels.fill_(self.fake_label)
+        error_fake_dis = self.criterion(output, labels)
+        error_fake_dis.backward()
+
+        # Add the gradients from the all-real and all-fake batches
+        loss_dis = float((error_real_dis + error_fake_dis).item())
+
+        self.optimizer_dis.step()
+
+        '''    
+        Update generator: maximize log(D(G(z)))
+        '''
+        self.optimizer_gen.zero_grad()
+        # Fake labels are real for generator cost
+        labels.fill_(self.real_label)
+
+        output = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        error_gen = self.criterion(output, labels)
+        error_gen.backward()
+
+        loss_gen = float(error_gen.item())
+
+        self.optimizer_gen.step()
+
+        return loss_gen, loss_dis
 
     def forward_model_test(self, values_to_unpack):
         pass
@@ -81,68 +122,3 @@ def experiments_run():
 
 if __name__ == '__main__':
     experiments_run()
-    # batch_size = 2
-    # num_of_movies = 5
-    # slate_size = 6
-    # embed_dims = 10
-    # noise_hidden_dims = 20
-    # hidden_layers_dims_gen = [20, 40, 60]
-    # hidden_layers_dims_dis = [512, 512, 512]
-    #
-    # gen = Generator(num_of_movies, slate_size, embed_dims, noise_hidden_dims, hidden_layers_dims_gen)
-    #
-    # slates = torch.LongTensor([[0, 1, 2, 3, 4, 4], [0, 0, 0, 1, 1, 1]]).cuda()
-    # user_interactions_with_padding = torch.LongTensor([[2, 3, 4], [0, 1, 5]]).cuda()
-    # number_of_interactions_per_user = torch.LongTensor([[3], [2]]).cuda()
-    #
-    # for epoch in range(5):
-    #     dis = Discriminator(num_of_movies, slate_size, embed_dims, hidden_layers_dims_dis)
-    #
-    #     # Loss functions
-    #     criterion = torch.nn.BCELoss()
-    #
-    #     if torch.cuda.is_available():
-    #         gen.cuda()
-    #         dis.cuda()
-    #         criterion.cuda()
-    #
-    #     optimizer_G = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.5))
-    #     optimizer_D = torch.optim.Adam(dis.parameters(), lr=0.0002, betas=(0.5, 0.5))
-    #
-    #     # Adversarial ground truths
-    #     valid = torch.tensor(np.full((batch_size, 1), 1.0), dtype=torch.float32, requires_grad=False).cuda()
-    #     fake = torch.tensor(np.full((batch_size, 1), 0.0), dtype=torch.float32, requires_grad=False).cuda()
-    #
-    #     optimizer_G.zero_grad()
-    #
-    #     noise = torch.normal(0, 1, size=(batch_size, noise_hidden_dims)).cuda()
-    #
-    #     gen_fake = gen(user_interactions_with_padding, number_of_interactions_per_user, noise)
-    #     validity = dis(gen_fake, user_interactions_with_padding, number_of_interactions_per_user)
-    #
-    #     g_loss = criterion(validity, fake)
-    #     g_loss.backward()
-    #
-    #     plot_grad_flow(gen.named_parameters())
-    #
-    #     optimizer_G.step()
-    #
-    #     '''
-    #     Training Discriminator
-    #     '''
-    #     optimizer_D.zero_grad()
-    #
-    #     # Loss for real images
-    #     validity_real = dis(slates, user_interactions_with_padding, number_of_interactions_per_user)
-    #     d_real_loss = criterion(validity_real, valid)
-    #
-    #     # Loss for fake images
-    #     validity_fake = dis(gen_fake.detach(), user_interactions_with_padding, number_of_interactions_per_user)
-    #     d_fake_loss = criterion(validity_fake, fake)
-    #
-    #     # Total discriminator loss
-    #     d_loss = (d_real_loss + d_fake_loss) / 2
-    #
-    #     d_loss.backward()
-    #     optimizer_D.step()
-

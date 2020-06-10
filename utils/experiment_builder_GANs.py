@@ -16,6 +16,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                  print_learnable_parameters=True):
         super(ExperimentBuilderGAN, self).__init__()
         self.configs = configs
+        torch.set_default_tensor_type(torch.FloatTensor)
 
         self.generator = generator
         self.discriminator = discriminator
@@ -149,19 +150,13 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                 self.generator.zero_grad()
                 self.discriminator.zero_grad()
 
-                loss = self.train_iteration(values_to_unpack)
+                loss_gen, loss_dis = self.train_iteration(values_to_unpack)
 
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
-
-                loss_value = loss.data.detach().cpu().numpy()
-
-                all_losses.append(float(loss_value))
                 pbar.update(1)
-                pbar.set_description(f"loss: {float(loss_value):.4f}")
+                pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
 
-        return np.mean(all_losses)
+        # return np.mean(all_losses)
+        return 0
 
     def run_evaluation_epoch(self, evaluation_loader):
         self.model.eval()
@@ -201,40 +196,40 @@ class ExperimentBuilderGAN(nn.Module, ABC):
             self.pre_epoch_init_function()
 
             average_loss = self.run_training_epoch()
-            hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.validation_loader)
-
-            if precision_mean > self.best_val_model_precision:
-                self.best_val_model_precision = precision_mean
-                self.best_val_model_idx = epoch_idx
-
-            self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
-            self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
-            self.writer.add_scalar('Precision', precision_mean, epoch_idx)
-            self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
-
-            print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
-
-            self.state['current_epoch_idx'] = epoch_idx
-            self.state['best_val_model_precision'] = self.best_val_model_precision
-            self.state['best_val_model_idx'] = self.best_val_model_idx
-
-            self.save_model(model_save_dir=self.experiment_saved_models,
-                            model_save_name="train_model", model_idx=epoch_idx, state=self.state)
-            self.save_model(model_save_dir=self.experiment_saved_models,
-                            model_save_name="train_model", model_idx='latest', state=self.state)
-
-        print(f"Generating test set evaluation metrics, best model on validation was Epoch {self.best_val_model_idx}")
-
-        self.load_model(model_save_dir=self.experiment_saved_models, model_idx=self.best_val_model_idx,
-                        model_save_name="train_model")
-
-        hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.test_loader)
-
-        self.writer.add_scalar('Test: Hit Ratio', hr_mean, 0)
-        self.writer.add_scalar('Test: Precision', precision_mean, 0)
-        self.writer.add_scalar('Test: Category Coverage', cat_cov_mean, 0)
-
-        print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
-
-        self.writer.flush()
-        self.writer.close()
+        #     hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.validation_loader)
+        #
+        #     if precision_mean > self.best_val_model_precision:
+        #         self.best_val_model_precision = precision_mean
+        #         self.best_val_model_idx = epoch_idx
+        #
+        #     self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
+        #     self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
+        #     self.writer.add_scalar('Precision', precision_mean, epoch_idx)
+        #     self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
+        #
+        #     print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
+        #
+        #     self.state['current_epoch_idx'] = epoch_idx
+        #     self.state['best_val_model_precision'] = self.best_val_model_precision
+        #     self.state['best_val_model_idx'] = self.best_val_model_idx
+        #
+        #     self.save_model(model_save_dir=self.experiment_saved_models,
+        #                     model_save_name="train_model", model_idx=epoch_idx, state=self.state)
+        #     self.save_model(model_save_dir=self.experiment_saved_models,
+        #                     model_save_name="train_model", model_idx='latest', state=self.state)
+        #
+        # print(f"Generating test set evaluation metrics, best model on validation was Epoch {self.best_val_model_idx}")
+        #
+        # self.load_model(model_save_dir=self.experiment_saved_models, model_idx=self.best_val_model_idx,
+        #                 model_save_name="train_model")
+        #
+        # hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.test_loader)
+        #
+        # self.writer.add_scalar('Test: Hit Ratio', hr_mean, 0)
+        # self.writer.add_scalar('Test: Precision', precision_mean, 0)
+        # self.writer.add_scalar('Test: Category Coverage', cat_cov_mean, 0)
+        #
+        # print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
+        #
+        # self.writer.flush()
+        # self.writer.close()

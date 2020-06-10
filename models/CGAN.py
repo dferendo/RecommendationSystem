@@ -103,13 +103,14 @@ class Discriminator(nn.Module):
 
         self.model_layers = nn.Sequential(
             *layers_block,
-            nn.Linear(input_dims, 1)
+            nn.Linear(input_dims, 1),
+            nn.Sigmoid()
         )
 
     def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user):
         # Concatenate label embedding and image to produce input
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
-        user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user
+        user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
 
         dim_input = torch.cat((slate_input, user_embedding), dim=1)
 
