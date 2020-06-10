@@ -1,21 +1,29 @@
 {
-  "experiment_name": "GreedyMLP/experiment_1",
-  "seed": 100,
+  "experiment_name": "Random/experiment_1",
+  "seed": 9023912,
+  "is_training": true,
+  "use_gpu": true,
+  "save_model": false,
+  "continue_from_epoch": -1,
+
+  "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-latest-small/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
   "minimum_user_interaction": 10,
   "minimum_movie_interaction": 100,
-  "is_training": true,
-  "use_gpu": true,
-  "save_model": true,
-  "continue_from_epoch": -1,
-  "use_bias": true,
-  "batch_size": 128,
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
-  "save_location": "./dataset/ml-latest-small/"
+  "save_location": "./dataset/ml-latest-small/",
+
+  "__comment": "Model Parameters",
+  "train_batch_size": 52,
+  "test_batch_size": 128,
+  "embed_dims": 20,
+  "noise_hidden_dims": 20,
+  "hidden_layers_dims_gen": [20, 40, 60],
+  "hidden_layers_dims_dis": [512, 512, 512]
 }
