@@ -101,11 +101,10 @@ def get_data_loaders(configs):
                               drop_last=True)
 
     test_dataset = UserConditionedDataLoader(df_test, df_test_matrix, df_train, df_train_matrix)
+    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
+                             drop_last=True)
 
-    for i in test_dataset:
-        pass
-
-    return train_loader
+    return train_loader, test_loader
 
 
 def experiments_run():

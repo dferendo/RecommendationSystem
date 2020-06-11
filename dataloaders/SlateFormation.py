@@ -65,15 +65,10 @@ class UserConditionedDataLoader(Dataset):
         return self.user_movie_matrix.shape[0]
 
     def __getitem__(self, idx):
-        user_interactions = np.array(self.user_interactions_values[idx]).astype(np.int32)
+        user_interactions = np.nonzero(self.user_movie_matrix[idx])[0]
 
         # The padding idx is the *self.number_of_movies*
-        padded_interactions = np.full(self.number_of_movies, self.number_of_movies)
+        padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)
         padded_interactions[0:len(user_interactions)] = user_interactions
 
-        ground_truth_items_indexes = np.nonzero(self.user_movie_matrix[idx])
-
-        print(self.user_movie_matrix[idx])
-
-
-        return self.user_movie_matrix[idx]
+        return padded_interactions, len(user_interactions), self.user_movie_matrix[idx]
