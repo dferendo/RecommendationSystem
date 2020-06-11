@@ -22,7 +22,7 @@
   "__comment": "Model Parameters All",
   "num_of_epochs": 100,
   "train_batch_size": 52,
-  "test_batch_size": 128,
+  "test_batch_size": 1,
   "embed_dims": 20,
 
   "__comment": "Generator Parameters",

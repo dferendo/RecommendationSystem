@@ -37,7 +37,7 @@ class Generator(nn.Module):
         for i in range(self.slate_size):
             self.output_dict[f'output_linear{i}'] = nn.Linear(in_dims, self.num_of_movies)
 
-    def forward(self, user_interactions_with_padding, number_of_interactions_per_user, noise):
+    def forward(self, user_interactions_with_padding, number_of_interactions_per_user, noise, inference=False):
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
 
@@ -51,6 +51,9 @@ class Generator(nn.Module):
             slate_embed_output = self.output_dict['output_tanh'](slate_embed_output)
 
             slate_embed_output = self.output_dict['softmax'](slate_embed_output)
+
+            if inference:
+                slate_embed_output = torch.argmax(slate_embed_output, dim=1).unsqueeze(dim=1)
 
             slate_outputs.append(slate_embed_output)
 

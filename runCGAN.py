@@ -75,8 +75,17 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
         return loss_gen, loss_dis
 
-    def forward_model_test(self, values_to_unpack):
-        pass
+    def eval_iteration(self, values_to_unpack):
+        user_interactions_with_padding = values_to_unpack[0].to(self.device)
+        number_of_interactions_per_user = values_to_unpack[1].to(self.device)
+
+        noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
+                            dtype=torch.float32, device=self.device)
+
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise,
+                                     inference=True)
+
+        return fake_slates
 
 
 def get_data_loaders(configs):
@@ -111,7 +120,7 @@ def experiments_run():
     configs = extract_args_from_json()
     set_seeds(configs['seed'])
 
-    train_loader = get_data_loaders(configs)
+    train_loader, test_loader = get_data_loaders(configs)
 
     generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
                           configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
@@ -119,7 +128,7 @@ def experiments_run():
     discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
                                   configs['hidden_layers_dims_dis'])
 
-    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, None, configs,
+    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader, configs,
                                                             print_learnable_parameters=False)
     experiment_builder.run_experiment()
 
