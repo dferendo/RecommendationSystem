@@ -147,18 +147,19 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         all_gen_losses = []
         all_dis_losses = []
 
-        with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
+        with tqdm.tqdm(total=len(self.train_loader) // self.CRITIC_ITERS, file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
                 self.generator.zero_grad()
                 self.discriminator.zero_grad()
 
                 loss_gen, loss_dis = self.train_iteration(idx, values_to_unpack)
 
-                all_gen_losses.append(float(loss_gen))
-                all_dis_losses.append(float(loss_dis))
+                if loss_gen is not None:
+                    all_gen_losses.append(float(loss_gen))
+                    all_dis_losses.append(float(loss_dis))
 
-                pbar.update(1)
-                pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
+                    pbar.update(1)
+                    pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
 
         return np.mean(all_gen_losses), np.mean(all_dis_losses)
 

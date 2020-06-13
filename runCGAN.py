@@ -41,7 +41,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
             for p in self.discriminator.parameters():
                 p.requires_grad = True
         else:
-            loss_gen = -1
+            loss_gen = None
 
         return loss_gen, loss_dis
 
