@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import precision_hit_ratio, category_coverage
+from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 
 import numpy as np
 import os
@@ -50,15 +50,15 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         self.best_val_model_precision = 0.
 
         # TODO: Saving/loading
-        if configs['continue_from_epoch'] != -1:  # if continue from epoch is not -1 then
-            self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model(
-                model_save_dir=self.experiment_saved_models, model_save_name="train_model",
-                model_idx=configs['continue_from_epoch'])
-
-            self.starting_epoch = self.state['current_epoch_idx']
-        else:
-            self.starting_epoch = 0
-            self.state = dict()
+        # if configs['continue_from_epoch'] != -1:  # if continue from epoch is not -1 then
+        #     self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model(
+        #         model_save_dir=self.experiment_saved_models, model_save_name="train_model",
+        #         model_idx=configs['continue_from_epoch'])
+        #
+        #     self.starting_epoch = self.state['current_epoch_idx']
+        # else:
+        #     self.starting_epoch = 0
+        #     self.state = dict()
 
     @staticmethod
     def print_parameters(named_parameters):
@@ -163,15 +163,15 @@ class ExperimentBuilderGAN(nn.Module, ABC):
 
         return np.mean(all_gen_losses), np.mean(all_dis_losses)
 
-    def run_evaluation_epoch(self, evaluation_loader):
+    def run_evaluation_epoch(self):
         self.generator.eval()
         self.discriminator.eval()
         predicted_slates = []
         ground_truth_slates = []
 
         with torch.no_grad():
-            with tqdm.tqdm(total=len(evaluation_loader), file=sys.stdout) as pbar_val:
-                for idx, values_to_unpack in enumerate(evaluation_loader):
+            with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
+                for idx, values_to_unpack in enumerate(self.evaluation_loader):
                     predicted_slate = self.eval_iteration(values_to_unpack)
 
                     # TODO: Temporary, use padding, Maybe?
@@ -185,10 +185,13 @@ class ExperimentBuilderGAN(nn.Module, ABC):
 
                     pbar_val.update(1)
 
-                predicted_slates = torch.cat(predicted_slates, dim=0).cpu()
+        predicted_slates = torch.cat(predicted_slates, dim=0)
+        diversity = movie_diversity(predicted_slates, self.train_loader.dataset.number_of_movies)
 
-        return precision_hit_ratio(predicted_slates, ground_truth_slates)
-        # return precision_hit_ratio(predicted_slates, ground_truth_slates), category_coverage(predicted_slates, self.train_loader)
+        predicted_slates = predicted_slates.cpu()
+        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+
+        return precision, hr, diversity
 
     def run_experiment(self):
         # Save hyper-parameters
@@ -206,21 +209,20 @@ class ExperimentBuilderGAN(nn.Module, ABC):
             self.pre_epoch_init_function()
 
             average_gen_loss, average_dis_loss = self.run_training_epoch()
-            precision_mean, hr_mean = self.run_evaluation_epoch(self.evaluation_loader)
+            precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
 
         #     if precision_mean > self.best_val_model_precision:
         #         self.best_val_model_precision = precision_mean
         #         self.best_val_model_idx = epoch_idx
         #
-            if average_gen_loss != -1:
-                self.writer.add_scalar('Average training loss for generator in epoch', average_gen_loss, epoch_idx)
-                self.writer.add_scalar('Average training loss for discriminator in epoch', average_dis_loss, epoch_idx)
+            self.writer.add_scalar('Average training loss for generator per epoch', average_gen_loss, epoch_idx)
+            self.writer.add_scalar('Average training loss for discriminator per epoch', average_dis_loss, epoch_idx)
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
-        #     self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
+            self.writer.add_scalar('Diversity', diversity, epoch_idx)
         #
-            print(f'HR: {hr_mean}, Precision: {precision_mean}')
+            print(f'HR: {hr_mean}, Precision: {precision_mean}, Diversity: {diversity}')
 
         #     self.state['current_epoch_idx'] = epoch_idx
         #     self.state['best_val_model_precision'] = self.best_val_model_precision
@@ -231,18 +233,6 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         #     self.save_model(model_save_dir=self.experiment_saved_models,
         #                     model_save_name="train_model", model_idx='latest', state=self.state)
         #
-        # print(f"Generating test set evaluation metrics, best model on validation was Epoch {self.best_val_model_idx}")
-        #
-        # self.load_model(model_save_dir=self.experiment_saved_models, model_idx=self.best_val_model_idx,
-        #                 model_save_name="train_model")
-        #
-        # hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.test_loader)
-        #
-        # self.writer.add_scalar('Test: Hit Ratio', hr_mean, 0)
-        # self.writer.add_scalar('Test: Precision', precision_mean, 0)
-        # self.writer.add_scalar('Test: Category Coverage', cat_cov_mean, 0)
-        #
-        # print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
 
         self.writer.flush()
         self.writer.close()

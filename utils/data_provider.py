@@ -60,7 +60,8 @@ def load_movie_categories(configs, all_movies_in_train):
                                                   columns=genres_category.categories)
 
     # Drop this column
-    sparse_df = sparse_df.drop('(no genres listed)', 1)
+    if '(no genres listed)' in sparse_df:
+        sparse_df = sparse_df.drop('(no genres listed)', 1)
 
     return sparse_df
 

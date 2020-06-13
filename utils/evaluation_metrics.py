@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def precision_hit_ratio(predicted_slates, ground_truths):
@@ -14,27 +15,10 @@ def precision_hit_ratio(predicted_slates, ground_truths):
     return precision_score / (1.0 * predicted_slates.size(0)), recall_score / (1.0 * predicted_slates.size(0))
 
 
-def category_coverage(predicted_slates, movies_categories):
+def movie_diversity(predicted_slates, all_movies_count):
     """
-    This ASSUMES that the predicted slates and in index form (ie index of the movie).
     :param predicted_slates:
-    :param movies_categories:
+    :param all_movies_count:
     :return:
     """
-    cat_coverage = 0.0
-
-    for predicted_slate in list(predicted_slates):
-        slate_genres = []
-
-        for movie_index in predicted_slate:
-            # Since movie_index is a tensor
-            movie_index = movie_index.item()
-
-            movie_genres = movies_categories.iloc[movie_index]
-
-            slate_genres.extend(movie_genres[movie_genres == 1].index.tolist())
-
-        unique_genres = set(slate_genres)
-        cat_coverage += (len(unique_genres) / (1.0 * len(movies_categories.columns)))
-
-    return cat_coverage / (1.0 * predicted_slates.size(0))
+    return (torch.unique(predicted_slates).size()[0] * 1.0) / all_movies_count
