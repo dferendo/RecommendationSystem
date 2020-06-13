@@ -49,16 +49,15 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         self.best_val_model_idx = 0
         self.best_val_model_precision = 0.
 
-        # TODO: Saving/loading
-        # if configs['continue_from_epoch'] != -1:  # if continue from epoch is not -1 then
-        #     self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model(
-        #         model_save_dir=self.experiment_saved_models, model_save_name="train_model",
-        #         model_idx=configs['continue_from_epoch'])
-        #
-        #     self.starting_epoch = self.state['current_epoch_idx']
-        # else:
-        #     self.starting_epoch = 0
-        #     self.state = dict()
+        if configs['continue_from_epoch'] != -1:  # if continue from epoch is not -1 then
+            self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model(
+                model_save_dir=self.experiment_saved_models, model_save_name="train_model",
+                model_idx=configs['continue_from_epoch'])
+
+            self.starting_epoch = self.state['current_epoch_idx']
+        else:
+            self.starting_epoch = 0
+            self.state = dict()
 
     @staticmethod
     def print_parameters(named_parameters):
@@ -174,7 +173,6 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
                     predicted_slate = self.eval_iteration(values_to_unpack)
 
-                    # TODO: Temporary, use padding, Maybe?
                     ground_truth_slate = values_to_unpack[2].cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
@@ -194,45 +192,33 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         return precision, hr, diversity
 
     def run_experiment(self):
-        # Save hyper-parameters
-        with SummaryWriter() as w:
-            hyper_params = self.configs.copy()
-
-            # An error will be thrown if a value of a param is an array
-            for key, value in hyper_params.items():
-                if type(value) is list:
-                    hyper_params[key] = ''.join(map(str, value))
-
-            w.add_hparams(hyper_params, {})
 
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
+            print(f"Epoch: {epoch_idx}")
             self.pre_epoch_init_function()
 
             average_gen_loss, average_dis_loss = self.run_training_epoch()
             precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
 
-        #     if precision_mean > self.best_val_model_precision:
-        #         self.best_val_model_precision = precision_mean
-        #         self.best_val_model_idx = epoch_idx
-        #
+            if precision_mean > self.best_val_model_precision:
+                self.best_val_model_precision = precision_mean
+                self.best_val_model_idx = epoch_idx
+
             self.writer.add_scalar('Average training loss for generator per epoch', average_gen_loss, epoch_idx)
             self.writer.add_scalar('Average training loss for discriminator per epoch', average_dis_loss, epoch_idx)
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
             self.writer.add_scalar('Diversity', diversity, epoch_idx)
-        #
+
             print(f'HR: {hr_mean}, Precision: {precision_mean}, Diversity: {diversity}')
 
-        #     self.state['current_epoch_idx'] = epoch_idx
-        #     self.state['best_val_model_precision'] = self.best_val_model_precision
-        #     self.state['best_val_model_idx'] = self.best_val_model_idx
-        #
-        #     self.save_model(model_save_dir=self.experiment_saved_models,
-        #                     model_save_name="train_model", model_idx=epoch_idx, state=self.state)
-        #     self.save_model(model_save_dir=self.experiment_saved_models,
-        #                     model_save_name="train_model", model_idx='latest', state=self.state)
-        #
+            self.state['current_epoch_idx'] = epoch_idx
+            self.state['best_val_model_precision'] = self.best_val_model_precision
+            self.state['best_val_model_idx'] = self.best_val_model_idx
+
+            self.save_model(model_save_dir=self.experiment_saved_models,
+                            model_save_name="train_model", model_idx=epoch_idx, state=self.state)
 
         self.writer.flush()
         self.writer.close()

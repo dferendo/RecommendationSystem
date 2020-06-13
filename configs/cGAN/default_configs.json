@@ -1,5 +1,5 @@
 {
-  "experiment_name": "Random/experiment_1",
+  "experiment_name": "cgan/default",
   "seed": 9023912,
   "is_training": true,
   "use_gpu": true,
@@ -20,7 +20,7 @@
   "save_location": "./dataset/ml-1m/",
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 300,
+  "num_of_epochs": 50,
   "train_batch_size": 64,
   "test_batch_size": 64,
   "embed_dims": 52,

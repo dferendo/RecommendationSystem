@@ -143,6 +143,7 @@ def get_data_loaders(configs):
 
 def experiments_run():
     configs = extract_args_from_json()
+    print(configs)
     set_seeds(configs['seed'])
 
     train_loader, test_loader = get_data_loaders(configs)
@@ -154,7 +155,7 @@ def experiments_run():
                                   configs['hidden_layers_dims_dis'])
 
     experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader, configs,
-                                                            print_learnable_parameters=False)
+                                                            print_learnable_parameters=True)
     experiment_builder.run_experiment()
 
 
