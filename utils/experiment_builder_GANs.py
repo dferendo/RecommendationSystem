@@ -124,9 +124,10 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         pass
 
     @abstractmethod
-    def train_iteration(self, values_to_unpack):
+    def train_iteration(self, idx, values_to_unpack):
         """
 
+        :param idx:
         :param values_to_unpack: Values obtained from the training data loader
         :return: The loss
         """
@@ -151,7 +152,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                 self.generator.zero_grad()
                 self.discriminator.zero_grad()
 
-                loss_gen, loss_dis = self.train_iteration(values_to_unpack)
+                loss_gen, loss_dis = self.train_iteration(idx, values_to_unpack)
 
                 all_gen_losses.append(float(loss_gen))
                 all_dis_losses.append(float(loss_dis))
@@ -210,8 +211,9 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         #         self.best_val_model_precision = precision_mean
         #         self.best_val_model_idx = epoch_idx
         #
-            self.writer.add_scalar('Average training loss for generator in epoch', average_gen_loss, epoch_idx)
-            self.writer.add_scalar('Average training loss for discriminator in epoch', average_dis_loss, epoch_idx)
+            if average_gen_loss != -1:
+                self.writer.add_scalar('Average training loss for generator in epoch', average_gen_loss, epoch_idx)
+                self.writer.add_scalar('Average training loss for discriminator in epoch', average_dis_loss, epoch_idx)
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)

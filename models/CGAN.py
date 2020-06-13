@@ -62,7 +62,7 @@ class Generator(nn.Module):
         return slates
 
     @staticmethod
-    def gen_block(in_feat, out_feat, normalize=True, dropout=0.2):
+    def gen_block(in_feat, out_feat, normalize=True, dropout=0.5):
         layers = [nn.Linear(in_feat, out_feat)]
 
         if normalize:
@@ -106,8 +106,7 @@ class Discriminator(nn.Module):
 
         self.model_layers = nn.Sequential(
             *layers_block,
-            nn.Linear(input_dims, 1),
-            nn.Sigmoid()
+            nn.Linear(input_dims, 1)
         )
 
     def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user):
