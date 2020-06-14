@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import hit_ratio, precision, category_coverage
+from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 
 import numpy as np
 import os
@@ -11,23 +11,25 @@ import sys
 from abc import ABC, abstractmethod
 
 
-class ExperimentBuilder(nn.Module, ABC):
+class ExperimentBuilderNN(nn.Module, ABC):
     def __init__(self, model, train_loader, evaluation_loader, configs, print_learnable_parameters=True):
-        super(ExperimentBuilder, self).__init__()
+        super(ExperimentBuilderNN, self).__init__()
         self.configs = configs
+        torch.set_default_tensor_type(torch.FloatTensor)
+
         self.model = model
         self.model.reset_parameters()
 
         self.train_loader = train_loader
         self.evaluation_loader = evaluation_loader
-        self.optimizer = None
 
         self.device = torch.cuda.current_device()
+        self.set_device(configs['use_gpu'])
+
+        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=configs['learning_rate_gen'])
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)
-
-        self.set_device(configs['use_gpu'])
 
         # Saving runs
         self.experiment_folder = "runs/{0}".format(configs['experiment_name'])
@@ -66,12 +68,19 @@ class ExperimentBuilder(nn.Module, ABC):
     def set_device(self, use_gpu):
         if torch.cuda.device_count() > 1 and use_gpu:
             self.device = torch.cuda.current_device()
-            self.model.to(self.device)
-            self.model = nn.DataParallel(module=self.model)
+
+            self.generator.to(self.device)
+            self.discriminator.to(self.device)
+
+            self.generator = nn.DataParallel(module=self.generator)
+            self.discriminator = nn.DataParallel(module=self.discriminator)
             print('Use Multi GPU', self.device)
         elif torch.cuda.device_count() == 1 and use_gpu:
             self.device = torch.cuda.current_device()
-            self.model.to(self.device)  # sends the model from the cpu to the gpu
+
+            self.generator.to(self.device)
+            self.discriminator.to(self.device)
+
             print('Use GPU', self.device)
         else:
             print("use CPU")
@@ -93,14 +102,6 @@ class ExperimentBuilder(nn.Module, ABC):
         torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
 
     @abstractmethod
-    def init_function(self):
-        """
-        Declares any require variables, such as optimizer.
-        :return:
-        """
-        pass
-
-    @abstractmethod
     def pre_epoch_init_function(self):
         """
         Declares or data resets (such as negative sampling) that are done pre-epoch training.
@@ -117,16 +118,17 @@ class ExperimentBuilder(nn.Module, ABC):
         pass
 
     @abstractmethod
-    def forward_model_training(self, values_to_unpack):
+    def train_iteration(self, idx, values_to_unpack):
         """
 
+        :param idx:
         :param values_to_unpack: Values obtained from the training data loader
         :return: The loss
         """
         pass
 
     @abstractmethod
-    def forward_model_test(self, values_to_unpack):
+    def eval_iteration(self, values_to_unpack):
         """
         :param values_to_unpack: Values obtained from the training data loader
         :return:
@@ -134,98 +136,85 @@ class ExperimentBuilder(nn.Module, ABC):
         pass
 
     def run_training_epoch(self):
-        self.model.train()
-        all_losses = []
+        self.generator.train()
+        self.discriminator.train()
+        all_gen_losses = []
+        all_dis_losses = []
 
-        with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
+        with tqdm.tqdm(total=len(self.train_loader) // self.CRITIC_ITERS, file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
-                self.model.zero_grad()
-                loss = self.forward_model_training(values_to_unpack)
+                self.generator.zero_grad()
+                self.discriminator.zero_grad()
 
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
+                loss_gen, loss_dis = self.train_iteration(idx, values_to_unpack)
 
-                loss_value = loss.data.detach().cpu().numpy()
+                if loss_gen is not None:
+                    all_gen_losses.append(float(loss_gen))
+                    all_dis_losses.append(float(loss_dis))
 
-                all_losses.append(float(loss_value))
-                pbar.update(1)
-                pbar.set_description(f"loss: {float(loss_value):.4f}")
+                    pbar.update(1)
+                    pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
 
-        return np.mean(all_losses)
+        return np.mean(all_gen_losses), np.mean(all_dis_losses)
 
-    def run_evaluation_epoch(self, evaluation_loader):
-        self.model.eval()
+    def run_evaluation_epoch(self):
+        self.generator.eval()
+        self.discriminator.eval()
         predicted_slates = []
         ground_truth_slates = []
 
         with torch.no_grad():
-            with tqdm.tqdm(total=len(evaluation_loader), file=sys.stdout) as pbar_val:
-                for idx, values_to_unpack in enumerate(evaluation_loader):
-                    predicted_slate = self.forward_model_test(values_to_unpack)
-                    ground_truth_slate = values_to_unpack[2].cuda()
+            with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
+                for idx, values_to_unpack in enumerate(self.evaluation_loader):
+                    predicted_slate = self.eval_iteration(values_to_unpack)
+
+                    ground_truth_slate = values_to_unpack[2].cpu()
+                    ground_truth_indexes = np.nonzero(ground_truth_slate)
+                    grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
+                                                    np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
 
                     predicted_slates.append(predicted_slate)
-                    ground_truth_slates.append(ground_truth_slate)
+                    ground_truth_slates.extend(grouped_ground_truth)
 
                     pbar_val.update(1)
 
-                predicted_slates = torch.cat(predicted_slates, dim=0).cpu()
-                ground_truth_slates = torch.cat(ground_truth_slates, dim=0).cpu()
+        predicted_slates = torch.cat(predicted_slates, dim=0)
+        diversity = movie_diversity(predicted_slates, self.train_loader.dataset.number_of_movies)
 
-        return hit_ratio(predicted_slates, ground_truth_slates), precision(predicted_slates, ground_truth_slates), \
-               category_coverage(predicted_slates, self.train_loader)
+        predicted_slates = predicted_slates.cpu()
+        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+
+        return precision, hr, diversity
 
     def run_experiment(self):
-        # Save hyper-parameters
-        with SummaryWriter() as w:
-            hyper_params = self.configs.copy()
-
-            # An error will be thrown if a value of a param is an array
-            for key, value in hyper_params.items():
-                if type(value) is list:
-                    hyper_params[key] = ''.join(map(str, value))
-
-            w.add_hparams(hyper_params, {})
 
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
+            print(f"Epoch: {epoch_idx}")
             self.pre_epoch_init_function()
 
-            average_loss = self.run_training_epoch()
-            hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.validation_loader)
+            average_gen_loss, average_dis_loss = self.run_training_epoch()
+            precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
 
             if precision_mean > self.best_val_model_precision:
                 self.best_val_model_precision = precision_mean
                 self.best_val_model_idx = epoch_idx
 
-            self.writer.add_scalar('Average training loss for epoch', average_loss, epoch_idx)
-            self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
-            self.writer.add_scalar('Precision', precision_mean, epoch_idx)
-            self.writer.add_scalar('Category Coverage', cat_cov_mean, epoch_idx)
+            self.writer.add_scalar('Average training loss for generator per epoch', average_gen_loss, epoch_idx)
+            self.writer.add_scalar('Average training loss for discriminator per epoch', average_dis_loss, epoch_idx)
 
-            print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
+            self.writer.add_scalar('Precision', precision_mean, epoch_idx)
+            self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
+            self.writer.add_scalar('Diversity', diversity, epoch_idx)
+
+            print(f'HR: {hr_mean}, Precision: {precision_mean}, Diversity: {diversity}')
 
             self.state['current_epoch_idx'] = epoch_idx
             self.state['best_val_model_precision'] = self.best_val_model_precision
             self.state['best_val_model_idx'] = self.best_val_model_idx
 
-            self.save_model(model_save_dir=self.experiment_saved_models,
-                            model_save_name="train_model", model_idx=epoch_idx, state=self.state)
-            self.save_model(model_save_dir=self.experiment_saved_models,
-                            model_save_name="train_model", model_idx='latest', state=self.state)
-
-        print(f"Generating test set evaluation metrics, best model on validation was Epoch {self.best_val_model_idx}")
-
-        self.load_model(model_save_dir=self.experiment_saved_models, model_idx=self.best_val_model_idx,
-                        model_save_name="train_model")
-
-        hr_mean, precision_mean, cat_cov_mean = self.run_evaluation_epoch(self.test_loader)
-
-        self.writer.add_scalar('Test: Hit Ratio', hr_mean, 0)
-        self.writer.add_scalar('Test: Precision', precision_mean, 0)
-        self.writer.add_scalar('Test: Category Coverage', cat_cov_mean, 0)
-
-        print(f'HR: {hr_mean}, Precision: {precision_mean}, Category Coverage: {cat_cov_mean}')
+            if self.configs['save_model']:
+                self.save_model(model_save_dir=self.experiment_saved_models,
+                                model_save_name="train_model", model_idx=epoch_idx, state=self.state)
 
         self.writer.flush()
         self.writer.close()
