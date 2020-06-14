@@ -133,5 +133,7 @@ dmypy.json
 
 dataset/ml-25m
 
-# TensorBoard
-runs/
+
+saved_models/
+*.out
+*.tar.gz
