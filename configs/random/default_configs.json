@@ -2,7 +2,6 @@
   "experiment_name": "random/",
   "seed": 9023912,
   "is_training": true,
-  "use_gpu": true,
 
   "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-1m/",

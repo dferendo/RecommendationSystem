@@ -11,24 +11,16 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilderPlain(nn.Module, ABC):
-    def __init__(self, model, train_loader, evaluation_loader, configs,
-                 print_learnable_parameters=True):
+    def __init__(self, model, evaluation_loader, number_of_movies, configs):
         super(ExperimentBuilderPlain, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
+        self.number_of_movies = number_of_movies
 
         self.model = model
-
         self.model.reset_parameters()
 
-        self.train_loader = train_loader
         self.evaluation_loader = evaluation_loader
-
-        self.device = torch.cuda.current_device()
-        self.set_device(configs['use_gpu'])
-
-        if print_learnable_parameters:
-            self.print_parameters(self.named_parameters)
 
         # Saving runs
         self.experiment_folder = "runs/{0}".format(configs['experiment_name'])
@@ -45,28 +37,9 @@ class ExperimentBuilderPlain(nn.Module, ABC):
 
         print('Total number of parameters', total_num_parameters)
 
-    def set_device(self, use_gpu):
-        if torch.cuda.device_count() > 1 and use_gpu:
-            self.device = torch.cuda.current_device()
-
-            self.model.to(self.device)
-
-            self.model = nn.DataParallel(module=self.model)
-            print('Use Multi GPU', self.device)
-        elif torch.cuda.device_count() == 1 and use_gpu:
-            self.device = torch.cuda.current_device()
-
-            self.model.to(self.device)
-            print('Use GPU', self.device)
-        else:
-            print("use CPU")
-            self.device = torch.device('cpu')  # sets the device to be CPU
-            print(self.device)
-
     @abstractmethod
-    def eval_iteration(self, values_to_unpack):
+    def eval_iteration(self):
         """
-        :param values_to_unpack: Values obtained from the training data loader
         :return:
         """
         pass
@@ -78,10 +51,10 @@ class ExperimentBuilderPlain(nn.Module, ABC):
         with torch.no_grad():
             with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
-                    predicted_slate = self.eval_iteration(values_to_unpack)
+                    predicted_slate = self.eval_iteration()
                     predicted_slates.append(predicted_slate)
 
-                    ground_truth_slate = values_to_unpack[2].cpu()
+                    ground_truth_slate = values_to_unpack
                     # The interactions are returned as an array (size == amount of movies) where the interactions
                     # between user and movie is assigned a 1, otherwise 0.
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
@@ -98,7 +71,7 @@ class ExperimentBuilderPlain(nn.Module, ABC):
                     pbar_val.update(1)
 
         predicted_slates = torch.cat(predicted_slates, dim=0)
-        diversity = movie_diversity(predicted_slates, self.train_loader.dataset.number_of_movies)
+        diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
         precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
