@@ -3,7 +3,7 @@
   "seed": 9023912,
   "is_training": true,
   "use_gpu": true,
-  "save_model": false,
+  "save_model": true,
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
