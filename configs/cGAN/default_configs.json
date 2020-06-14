@@ -1,5 +1,5 @@
 {
-  "experiment_name": "cgan/default",
+  "experiment_name": "cgan/",
   "seed": 9023912,
   "is_training": true,
   "use_gpu": true,

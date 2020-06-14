@@ -1,15 +1,31 @@
 import json
 import pandas as pd
 import os
+import argparse
 
-default_configs = './configs/cGAN/default_configs.json'
-hyper_parameters_tuning = './configs/cGAN/multi_runs.csv'
-run_file = 'runCGAN.py'
 
-with open(default_configs, 'r') as json_configs:
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+parser = argparse.ArgumentParser(description='Recommendation Systems')
+
+parser.add_argument('--default_configs', nargs="?", type=str, required=True, help='')
+parser.add_argument('--hyper_parameters_tuning', nargs="?", type=str, required=True, help='')
+parser.add_argument('--run_file', nargs="?", type=str, required=True, help='')
+parser.add_argument('--run_on_cluster', nargs="?", type=str2bool, required=True, help='')
+args = parser.parse_args()
+
+
+with open(args.default_configs, 'r') as json_configs:
     default_config = json.load(json_configs)
 
-with open(hyper_parameters_tuning, 'r') as hparams:
+with open(args.hyper_parameters_tuning, 'r') as hparams:
     df = pd.read_csv(hparams)
 
     for _, series in df.iterrows():
@@ -34,7 +50,7 @@ with open(hyper_parameters_tuning, 'r') as hparams:
 
             experiment_name += f'{key}_{value}_'
 
-        json_merged['experiment_name'] = experiment_name
+        json_merged['experiment_name'] = os.path.join(json_merged['experiment_name'], experiment_name)
         json_merged = json.dumps(json_merged)
 
-        os.system(f"python {run_file} --json_configs_string '{json_merged}'")
+        os.system(f"python {args.run_file} --json_configs_string '{json_merged}'")
