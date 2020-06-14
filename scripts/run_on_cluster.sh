@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
-#SBATCH --partition=Teach-Standard
+#SBATCH --partition=Teach-Short
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=0-03:00:00
@@ -23,7 +23,6 @@ export PATH=${CUDA_HOME}/bin:${PATH}
 export PYTHON_PATH=$PATH
 
 mkdir -p /disk/scratch/${STUDENT_ID}
-
 
 export TMPDIR=/disk/scratch/${STUDENT_ID}/
 export TMP=/disk/scratch/${STUDENT_ID}
