@@ -3,6 +3,10 @@ import pandas as pd
 import os
 import argparse
 
+'''
+Example: 
+python ./RunMultipleJobs.py --default_configs ./configs/cGAN/default_configs.json --hyper_parameters_tuning ./configs/cGAN/multi_runs.csv --run_file runCGAN.py --run_on_cluster false
+'''
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -21,6 +25,7 @@ parser.add_argument('--run_file', nargs="?", type=str, required=True, help='')
 parser.add_argument('--run_on_cluster', nargs="?", type=str2bool, required=True, help='')
 args = parser.parse_args()
 
+bash_script_location = './scripts/run_on_cluster.sh'
 
 with open(args.default_configs, 'r') as json_configs:
     default_config = json.load(json_configs)
@@ -37,6 +42,7 @@ with open(args.hyper_parameters_tuning, 'r') as hparams:
         json_merged = json.dumps(json_merged)
 
         # Sorry for the lazy hack
+        json_merged = json_merged.replace(' ', '')
         json_merged = json_merged.replace('\"[', '[')
         json_merged = json_merged.replace(']\"', ']')
 
@@ -53,4 +59,7 @@ with open(args.hyper_parameters_tuning, 'r') as hparams:
         json_merged['experiment_name'] = os.path.join(json_merged['experiment_name'], experiment_name)
         json_merged = json.dumps(json_merged)
 
-        os.system(f"python {args.run_file} --json_configs_string '{json_merged}'")
+        if args.run_on_cluster:
+            os.system(f"bash {bash_script_location} {args.run_file} '{json_merged}'")
+        else:
+            os.system(f"python {args.run_file} --json_configs_string '{json_merged}'")

@@ -217,8 +217,9 @@ class ExperimentBuilderGAN(nn.Module, ABC):
             self.state['best_val_model_precision'] = self.best_val_model_precision
             self.state['best_val_model_idx'] = self.best_val_model_idx
 
-            self.save_model(model_save_dir=self.experiment_saved_models,
-                            model_save_name="train_model", model_idx=epoch_idx, state=self.state)
+            if self.configs['save_model']:
+                self.save_model(model_save_dir=self.experiment_saved_models,
+                                model_save_name="train_model", model_idx=epoch_idx, state=self.state)
 
         self.writer.flush()
         self.writer.close()

@@ -131,7 +131,7 @@ dmypy.json
 # Idea
 .idea/
 
-dataset/
+dataset/ml-25m
 
 # TensorBoard
 runs/
