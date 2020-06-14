@@ -60,6 +60,6 @@ with open(args.hyper_parameters_tuning, 'r') as hparams:
         json_merged = json.dumps(json_merged)
 
         if args.run_on_cluster:
-            os.system(f"bash {bash_script_location} {args.run_file} '{json_merged}'")
+            os.system(f"sbatch {bash_script_location} {args.run_file} '{json_merged}'")
         else:
             os.system(f"python {args.run_file} --json_configs_string '{json_merged}'")
