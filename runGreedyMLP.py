@@ -3,13 +3,13 @@ from utils.data_provider import split_dataset, load_movie_categories
 from utils.reset_seed import set_seeds
 from models import GreedyMLP
 from dataloaders.PointwiseDataLoader import PointwiseDataLoader, PointwiseDataLoaderTest
-from utils.experiment_builder import ExperimentBuilder
+from utils.experiment_builder import ExperimentBuilderNN
 
-from torch.utils.data import DataLoader
-import torch
+# from torch.utils.data import DataLoader
+# import torch
 
 
-class GreedyMLPExperimentBuilder(ExperimentBuilder):
+class GreedyMLPExperimentBuilder(ExperimentBuilderNN):
     criterion = torch.nn.BCELoss()
 
     def pre_epoch_init_function(self):
@@ -51,26 +51,33 @@ def experiments_run():
     configs = extract_args_from_json()
     set_seeds(configs['seed'])
 
-    df_train, df_val, df_test, df_train_matrix, df_val_matrix, df_test_matrix = split_dataset(configs)
-    movies_categories = load_movie_categories(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
 
     train_dataset = PointwiseDataLoader(df_train, df_train_matrix, configs['negative_samples'], movies_categories, True)
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    val_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
-                                          configs['slate_size'])
-    val_loader = DataLoader(val_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
-
-    test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
-                                           configs['slate_size'])
-    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
-
-    model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
-                                configs['use_bias'])
-
-    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, test_loader, configs)
-    experiment_builder.run_experiment()
+    #
+    #
+    # test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negat ive_samples_per_test_item'],
+    #                                       configs['slate_size'])
+    # test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
+    #                          drop_last=True)
+    #
+    #
+    # val_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negat ive_samples_per_test_item'],
+    #                                       configs['slate_size'])
+    # val_loader = DataLoader(val_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
+    #
+    # test_dataset = PointwiseDataLoaderTest(df_val, df_val_matrix, configs['negative_samples_per_test_item'],
+    #                                        configs['slate_size'])
+    # test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=0, drop_last=True)
+    #
+    # model = GreedyMLP.GreedyMLP(len(df_train_matrix.index), len(df_train_matrix.columns), configs['hidden_layers_dims'],
+    #                             configs['use_bias'])
+    #
+    # experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, val_loader, test_loader, configs)
+    # experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':
