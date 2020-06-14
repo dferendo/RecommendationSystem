@@ -1,13 +1,10 @@
 {
-  "experiment_name": "PopK/experiment_1",
+  "experiment_name": "popK/",
   "seed": 9023912,
-  "is_training": false,
-  "use_gpu": true,
-  "save_model": false,
-  "continue_from_epoch": -1,
+  "is_training": true,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
