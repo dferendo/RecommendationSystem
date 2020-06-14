@@ -17,7 +17,6 @@
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
   "negative_sampling_for_slates": [0],
-  "save_location": "./dataset/ml-1m/",
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 50,

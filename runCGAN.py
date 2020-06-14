@@ -120,7 +120,7 @@ def get_data_loaders(configs):
                                                          '-'.join(
                                                              str(e) for e in configs['negative_sampling_for_slates']),
                                                          configs['is_training'])
-    slate_formation_file_location = os.path.join(configs['save_location'], slate_formation_file_name)
+    slate_formation_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
 
     # Check if we have the slates for training
     if os.path.isfile(slate_formation_file_location):

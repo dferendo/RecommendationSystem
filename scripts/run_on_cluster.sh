@@ -25,16 +25,15 @@ export PYTHON_PATH=$PATH
 mkdir -p /disk/scratch/${STUDENT_ID}
 
 
-#export TMPDIR=/disk/scratch/${STUDENT_ID}/
-#export TMP=/disk/scratch/${STUDENT_ID}
-#
-#mkdir -p ${TMP}/datasets/
-#export DATASET_DIR=${TMP}/datasets
-#
-## Activate the relevant virtual environment:
-#rsync -ua /home/${STUDENT_ID}/Leveraging-Unlabeled-Data-For-Breast-Cancer-Classification/data/BreaKHis_v1.tar.gz "${DATASET_DIR}"
-#tar -xzf "${DATASET_DIR}/BreaKHis_v1.tar.gz" -C "${DATASET_DIR}"
-#
-#source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
+export TMPDIR=/disk/scratch/${STUDENT_ID}/
+export TMP=/disk/scratch/${STUDENT_ID}
 
-python ${1} --json_configs_string "${2}"
+mkdir -p ${TMP}/datasets/
+export DATASET_DIR=${TMP}/datasets
+
+rsync -ua /home/${STUDENT_ID}/RecommendationSystem/dataset/ml-1m.tar.gz "${DATASET_DIR}"
+tar -xzf "${DATASET_DIR}/ml-1m.tar.gz" -C "${DATASET_DIR}"
+
+source /home/${STUDENT_ID}/miniconda3/bin/activate tezi
+
+python ${1} --json_configs_string "${2}" --dataset_location "${DATASET_DIR}/ml-1m/"
