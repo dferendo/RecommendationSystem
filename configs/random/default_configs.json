@@ -1,13 +1,11 @@
 {
-  "experiment_name": "Random/experiment_1",
+  "experiment_name": "random/",
   "seed": 9023912,
-  "is_training": false,
+  "is_training": true,
   "use_gpu": true,
-  "save_model": false,
-  "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,

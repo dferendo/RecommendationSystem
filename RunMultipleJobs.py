@@ -8,6 +8,7 @@ Example:
 python ./RunMultipleJobs.py --default_configs ./configs/cGAN/default_configs.json --hyper_parameters_tuning ./configs/cGAN/multi_runs.csv --run_file runCGAN.py --run_on_cluster false
 '''
 
+
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
