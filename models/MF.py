@@ -18,9 +18,16 @@ class MF(nn.Module):
             self.bias_items = torch.nn.Embedding(num_items, 1)
 
     def forward(self, user, item):
-        out = (self.user_factors(user) * self.item_factors(item))
+        out = (self.embedding_user(user) * self.embedding_item(item))
 
         if self.use_bias:
-            out += self.user_biases(user) + self.item_biases(item)
+            out += self.bias_users(user) + self.bias_items(item)
 
-        return out.sum(1)
+        return out.sum(dim=1)
+
+    def reset_parameters(self):
+        """
+        Re-initializes the networks parameters
+        """
+        self.embedding_user.reset_parameters()
+        self.embedding_item.reset_parameters()

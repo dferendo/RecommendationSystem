@@ -26,7 +26,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
         self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
-        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=configs['learning_rate_gen'])
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'])
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)
@@ -69,17 +69,12 @@ class ExperimentBuilderNN(nn.Module, ABC):
         if torch.cuda.device_count() > 1 and use_gpu:
             self.device = torch.cuda.current_device()
 
-            self.generator.to(self.device)
-            self.discriminator.to(self.device)
-
-            self.generator = nn.DataParallel(module=self.generator)
-            self.discriminator = nn.DataParallel(module=self.discriminator)
+            self.model.to(self.device)
+            self.model = nn.DataParallel(module=self.generator)
             print('Use Multi GPU', self.device)
         elif torch.cuda.device_count() == 1 and use_gpu:
             self.device = torch.cuda.current_device()
-
-            self.generator.to(self.device)
-            self.discriminator.to(self.device)
+            self.model.to(self.device)
 
             print('Use GPU', self.device)
         else:
@@ -110,14 +105,6 @@ class ExperimentBuilderNN(nn.Module, ABC):
         pass
 
     @abstractmethod
-    def loss_function(self, values):
-        """
-        :param values: Represents a tuple of values
-        :return: Loss
-        """
-        pass
-
-    @abstractmethod
     def train_iteration(self, idx, values_to_unpack):
         """
 
@@ -136,26 +123,24 @@ class ExperimentBuilderNN(nn.Module, ABC):
         pass
 
     def run_training_epoch(self):
-        self.generator.train()
-        self.discriminator.train()
-        all_gen_losses = []
-        all_dis_losses = []
+        self.model.train()
+        all_losses = []
 
-        with tqdm.tqdm(total=len(self.train_loader) // self.CRITIC_ITERS, file=sys.stdout) as pbar:
+        with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
-                self.generator.zero_grad()
-                self.discriminator.zero_grad()
+                self.model.zero_grad()
 
-                loss_gen, loss_dis = self.train_iteration(idx, values_to_unpack)
+                loss = self.train_iteration(idx, values_to_unpack)
 
-                if loss_gen is not None:
-                    all_gen_losses.append(float(loss_gen))
-                    all_dis_losses.append(float(loss_dis))
+                loss.backward()
+                self.optimizer.step()
 
-                    pbar.update(1)
-                    pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
+                all_losses.append(float(loss))
 
-        return np.mean(all_gen_losses), np.mean(all_dis_losses)
+                pbar.update(1)
+                pbar.set_description(f"loss: {float(loss):.4f}")
+
+        return np.mean(all_losses)
 
     def run_evaluation_epoch(self):
         self.generator.eval()
@@ -192,15 +177,14 @@ class ExperimentBuilderNN(nn.Module, ABC):
             print(f"Epoch: {epoch_idx}")
             self.pre_epoch_init_function()
 
-            average_gen_loss, average_dis_loss = self.run_training_epoch()
+            average_loss = self.run_training_epoch()
             precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
 
             if precision_mean > self.best_val_model_precision:
                 self.best_val_model_precision = precision_mean
                 self.best_val_model_idx = epoch_idx
 
-            self.writer.add_scalar('Average training loss for generator per epoch', average_gen_loss, epoch_idx)
-            self.writer.add_scalar('Average training loss for discriminator per epoch', average_dis_loss, epoch_idx)
+            self.writer.add_scalar('Average training loss per epoch', average_loss, epoch_idx)
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
