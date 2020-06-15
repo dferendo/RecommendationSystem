@@ -56,6 +56,7 @@ class MFExperimentBuilder(ExperimentBuilderNN):
 
 def experiments_run():
     configs = extract_args_from_json()
+    print(configs)
     set_seeds(configs['seed'])
 
     df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
@@ -66,7 +67,7 @@ def experiments_run():
                               drop_last=True)
 
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix)
-    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=4,
+    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
                              drop_last=True)
 
     total_movies = len(df_train_matrix.columns)

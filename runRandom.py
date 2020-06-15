@@ -16,6 +16,7 @@ class ExperimentBuilderRandom(ExperimentBuilderPlain):
 
 def experiments_run():
     configs = extract_args_from_json()
+    print(configs)
     set_seeds(configs['seed'])
 
     df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)

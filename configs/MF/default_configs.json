@@ -3,7 +3,7 @@
   "seed": 9023912,
   "is_training": true,
   "use_gpu": true,
-  "save_model": true,
+  "save_model": false,
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
@@ -15,7 +15,7 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Model Parameters",
-  "num_of_epochs": 50,
+  "num_of_epochs": 1,
   "slate_size": 6,
   "train_batch_size": 128,
   "test_batch_size": 128,

@@ -33,12 +33,10 @@ with open(args.default_configs, 'r') as json_configs:
 
 with open(args.hyper_parameters_tuning, 'r') as hparams:
     df = pd.read_csv(hparams)
+    params = json.loads(df.to_json(orient='records'))
 
-    for _, series in df.iterrows():
-        json_string = series.to_json()
-        json_string = json.loads(json_string)
-
-        json_merged = {**default_config, **json_string}
+    for hyper_param in params:
+        json_merged = {**default_config, **hyper_param}
 
         json_merged = json.dumps(json_merged)
 
@@ -51,7 +49,7 @@ with open(args.hyper_parameters_tuning, 'r') as hparams:
 
         # Experiment name (Only mention changeable variables)
         experiment_name = ''
-        for key, value in json_string.items():
+        for key, value in hyper_param.items():
             if len(key) > 3:
                 key = key[:3]
 

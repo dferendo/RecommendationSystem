@@ -18,22 +18,12 @@ class PointwiseDataLoader(Dataset):
         self.all_interactions = None
 
     def negative_sampling(self):
-        assert self.neg_sample_per_training_example > 0
-
         grouped_users = self.training_examples.groupby(['userId'])['movieId'].apply(list)
         all_samples = []
 
         for user_id, user_interactions in grouped_users.items():
             # Get the possible index of movieIds that we can sample for this user
             movies_to_sample = np.setxor1d(self.all_movies_that_can_be_sampled, user_interactions)
-
-            # Generate all the negative samples (Not sure about the efficiency of np.choice)
-            negative_samples_for_user = np.random.choice(movies_to_sample,
-                                                         size=self.neg_sample_per_training_example * len(user_interactions))
-
-            # Reshape so that for every interaction, we have x negative samples
-            negative_samples_for_user = np.reshape(negative_samples_for_user,
-                                                   (len(user_interactions), self.neg_sample_per_training_example))
 
             users_interactions_matrix = np.expand_dims(np.array(user_interactions), axis=1)
             user_id_matrix = np.full((len(user_interactions), 1), user_id)
@@ -42,6 +32,17 @@ class PointwiseDataLoader(Dataset):
             user_positive_interactions = np.hstack((user_id_matrix, users_interactions_matrix))
 
             all_samples.append(user_positive_interactions)
+
+            if self.neg_sample_per_training_example == 0:
+                continue
+
+            # Generate all the negative samples (Not sure about the efficiency of np.choice)
+            negative_samples_for_user = np.random.choice(movies_to_sample,
+                                                         size=self.neg_sample_per_training_example * len(user_interactions))
+
+            # Reshape so that for every interaction, we have x negative samples
+            negative_samples_for_user = np.reshape(negative_samples_for_user,
+                                                   (len(user_interactions), self.neg_sample_per_training_example))
 
             # For every negative sample column, concat it with the user true interaction
             for idx in range(self.neg_sample_per_training_example):
@@ -56,6 +57,9 @@ class PointwiseDataLoader(Dataset):
         self.all_interactions = np.vstack(all_samples)
 
     def __len__(self):
+        if self.neg_sample_per_training_example == 0:
+            return len(self.training_examples)
+
         return self.neg_sample_per_training_example * len(self.training_examples)
 
     def __getitem__(self, idx):
