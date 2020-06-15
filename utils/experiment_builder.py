@@ -12,10 +12,11 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilderNN(nn.Module, ABC):
-    def __init__(self, model, train_loader, evaluation_loader, configs, print_learnable_parameters=True):
+    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs, print_learnable_parameters=True):
         super(ExperimentBuilderNN, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
+        self.number_of_movies = number_of_movies
 
         self.model = model
         self.model.reset_parameters()
@@ -143,8 +144,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
         return np.mean(all_losses)
 
     def run_evaluation_epoch(self):
-        self.generator.eval()
-        self.discriminator.eval()
+        self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
 
@@ -153,7 +153,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
                     predicted_slate = self.eval_iteration(values_to_unpack)
 
-                    ground_truth_slate = values_to_unpack[2].cpu()
+                    ground_truth_slate = values_to_unpack[1].cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
@@ -164,7 +164,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
                     pbar_val.update(1)
 
         predicted_slates = torch.cat(predicted_slates, dim=0)
-        diversity = movie_diversity(predicted_slates, self.train_loader.dataset.number_of_movies)
+        diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
         precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)

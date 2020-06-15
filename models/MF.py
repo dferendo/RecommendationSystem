@@ -9,6 +9,9 @@ class MF(nn.Module):
     def __init__(self, num_users, num_items, latent_dims, use_bias=False):
         super(MF, self).__init__()
 
+        self.num_users = num_users
+        self.num_items = num_items
+
         self.use_bias = use_bias
         self.embedding_user = torch.nn.Embedding(num_embeddings=num_users, embedding_dim=latent_dims)
         self.embedding_item = torch.nn.Embedding(num_embeddings=num_items, embedding_dim=latent_dims)

@@ -18,6 +18,7 @@
   "num_of_epochs": 50,
   "slate_size": 6,
   "train_batch_size": 128,
+  "test_batch_size": 128,
   "neg_sample_per_training_example": 5,
   "embed_dims": 20,
   "use_bias": true,

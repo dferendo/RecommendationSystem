@@ -30,7 +30,28 @@ class MFExperimentBuilder(ExperimentBuilderNN):
         return loss
 
     def eval_iteration(self, values_to_unpack):
-        pass
+        user_indexes = values_to_unpack[0]
+
+        slates = []
+
+        for user_index in user_indexes:
+            user_index = user_index.item()
+
+            movie_index = np.arange(self.model.num_items)
+            user_index = np.full((self.model.num_items,), user_index)
+
+            movie_tensor = torch.from_numpy(movie_index).to(self.device)
+            user_tensor = torch.from_numpy(user_index).to(self.device)
+
+            prediction = self.model(user_tensor, movie_tensor)
+
+            slate = torch.topk(prediction, self.configs['slate_size'])
+
+            slates.append(slate.indices)
+
+        predicted_slates = torch.stack(slates, dim=0)
+
+        return predicted_slates
 
 
 def experiments_run():
@@ -45,7 +66,7 @@ def experiments_run():
                               drop_last=True)
 
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=4,
+    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=True, num_workers=4,
                              drop_last=True)
 
     total_movies = len(df_train_matrix.columns)
@@ -53,7 +74,7 @@ def experiments_run():
 
     model = MF(total_users, total_movies, configs['embed_dims'], use_bias=configs['use_bias'])
 
-    experiment_builder = MFExperimentBuilder(model, train_loader, test_loader, configs)
+    experiment_builder = MFExperimentBuilder(model, train_loader, test_loader, total_movies, configs)
     experiment_builder.run_experiment()
 
 
