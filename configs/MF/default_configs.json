@@ -22,5 +22,6 @@
   "neg_sample_per_training_example": 5,
   "embed_dims": 20,
   "use_bias": true,
-  "lr": 0.0002
+  "lr": 0.0002,
+  "weight_decay": 0
 }

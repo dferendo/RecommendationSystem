@@ -27,7 +27,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
         self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'])
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'], weight_decay=configs[''])
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)
