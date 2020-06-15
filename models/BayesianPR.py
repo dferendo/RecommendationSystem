@@ -10,6 +10,8 @@ class BPR(nn.Module):
     """
     def __init__(self, num_users, num_items, latent_dims):
         super(BPR, self).__init__()
+        self.num_users = num_users
+        self.num_items = num_items
 
         self.embed_user = nn.Embedding(num_users, latent_dims)
         self.embed_item = nn.Embedding(num_items, latent_dims)

@@ -3,19 +3,17 @@ from torch.utils.data import Dataset
 
 
 class PairwiseDataLoader(Dataset):
-    def __init__(self, training_examples, train_matrix, neg_sample_per_training_example, is_training):
+    def __init__(self, training_examples, train_matrix, neg_sample_per_training_example):
         self.training_examples = training_examples
         self.train_matrix = train_matrix
         self.neg_sample_per_training_example = neg_sample_per_training_example
-        self.is_training = is_training
+
         self.num_of_movies = len(train_matrix.columns)
         self.all_movies_that_can_be_sampled = np.array(train_matrix.columns)
 
         self.interactions_with_negative_sampling = None
 
     def negative_sampling(self):
-        # Sampling is only needed when training
-        assert self.is_training
         assert self.neg_sample_per_training_example > 0
 
         grouped_users = self.training_examples.groupby(['userId'])['movieId'].apply(list)
@@ -53,21 +51,12 @@ class PairwiseDataLoader(Dataset):
         self.interactions_with_negative_sampling = np.vstack(all_negative_samples)
 
     def __len__(self):
-        if self.is_training:
-            return self.neg_sample_per_training_example * len(self.training_examples)
-
-        return len(self.training_examples)
+        return self.neg_sample_per_training_example * len(self.training_examples)
 
     def __getitem__(self, idx):
-        # If in training, we need to use the negatively sampled item with the interacted item
-        if self.is_training:
-            user = self.interactions_with_negative_sampling[idx, 0]
-            item_i = self.interactions_with_negative_sampling[idx, 1]
-            item_j = self.interactions_with_negative_sampling[idx, 2]
-        else:
-            user = self.training_examples.iloc[idx]['userId']
-            item_i = self.training_examples.iloc[idx]['movieId']
-            item_j = None
+        user = self.interactions_with_negative_sampling[idx, 0]
+        item_i = self.interactions_with_negative_sampling[idx, 1]
+        item_j = self.interactions_with_negative_sampling[idx, 2]
 
         # Convert from ids to indexes for the embedding
         user = self.train_matrix.index.get_loc(user)
