@@ -6,7 +6,6 @@ from dataloaders.PointwiseDataLoader import PointwiseDataLoader
 from dataloaders.TestDataLoader import UserIndexTestDataLoader
 from models.GreedyMLP import GreedyMLP
 
-import pandas as pd
 import numpy as np
 
 import torch

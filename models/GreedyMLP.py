@@ -9,13 +9,14 @@ class GreedyMLP(nn.Module):
     Implementation follows the model proposed by (Neural Collaborative Filtering) https://arxiv.org/pdf/1708.05031.pdf
     We will use a pointwise loss function. Note this method is also known as DeepRank.
     """
-    def __init__(self, num_users, num_items, hidden_layers_dim, use_bias):
+    def __init__(self, num_users, num_items, hidden_layers_dim, use_bias, dropout=0):
         super(GreedyMLP, self).__init__()
 
         self.num_users = num_users
         self.num_items = num_items
         self.hidden_layers_dim = hidden_layers_dim
         self.use_bias = use_bias
+        self.dropout = dropout
 
         self.layer_dict = nn.ModuleDict()
 
@@ -29,6 +30,10 @@ class GreedyMLP(nn.Module):
         for idx, (input_size, output_size) in enumerate(zip(self.hidden_layers_dim, self.hidden_layers_dim[1:])):
             self.layer_dict[f'fcc_{idx}'] = nn.Linear(in_features=input_size, out_features=output_size,
                                                       bias=self.use_bias)
+            self.layer_dict[f'bn_{idx}'] = nn.BatchNorm1d(output_size)
+
+            if self.dropout != 0:
+                self.layer_dict[f'dropout_{idx}'] = nn.Dropout(p=self.dropout)
 
         # Output layer (Binary classification since we are doing pointwise loss)
         self.classifier = torch.nn.Linear(in_features=self.hidden_layers_dim[-1], out_features=1)
@@ -44,8 +49,10 @@ class GreedyMLP(nn.Module):
         for idx in range(len(self.hidden_layers_dim) - 1):
             out = self.layer_dict[f'fcc_{idx}'](out)
             out = F.relu_(out)
-            # vector = torch.nn.BatchNorm1d()(vector)
-            # vector = torch.nn.Dropout(p=0.5)(vector)
+            out = self.layer_dict[f'bn_{idx}'](out)
+
+            if self.dropout != 0:
+                out = self.layer_dict[f'dropout_{idx}'](out)
 
         out = self.classifier(out)
         out = self.logistic(out)
