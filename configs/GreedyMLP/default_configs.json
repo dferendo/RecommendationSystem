@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -15,7 +15,7 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Model Parameters",
-  "num_of_epochs": 10,
+  "num_of_epochs": 20,
   "slate_size": 6,
   "train_batch_size": 512,
   "test_batch_size": 128,
