@@ -4,7 +4,7 @@ from utils.reset_seed import set_seeds
 from utils.SlateFormation import generate_slate_formation
 from utils.experiment_builder_GANs import ExperimentBuilderGAN
 from dataloaders.SlateFormation import SlateFormationDataLoader, UserConditionedDataLoader
-from models.CGAN import Generator, Discriminator
+from models.CGAN_CONV import Generator, Discriminator
 
 import torch
 import os
@@ -26,6 +26,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         user_interactions_with_padding = values_to_unpack[1].to(self.device)
         number_of_interactions_per_user = values_to_unpack[2].to(self.device)
         real_slates = values_to_unpack[3].to(self.device).float()
+        real_slates = real_slates.view(real_slates.shape[0], self.configs['slate_size'], self.generator.number_of_movies)
 
         '''    
         Update discriminator
@@ -52,35 +53,33 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise,
-                                     inference=True)
+        fake_slates = self.generator(noise)
 
-        return fake_slates
+        return torch.argmax(fake_slates, dim=2)
 
     def update_discriminator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user):
         self.discriminator.zero_grad()
 
-        dis_real = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        dis_real = self.discriminator(real_slates)
         dis_real = dis_real.mean()
 
         # Generate fake slates
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        dis_fake = self.discriminator(fake_slates.detach(), user_interactions_with_padding,
-                                      number_of_interactions_per_user)
+        fake_slates = self.generator(noise)
+        dis_fake = self.discriminator(fake_slates.detach())
+
         dis_fake = dis_fake.mean()
 
         # Calculate Gradient policy
-        epsilon = torch.rand(real_slates.shape[0], 1)
+        epsilon = torch.rand(real_slates.shape[0], 1, 1)
         epsilon = epsilon.expand(real_slates.size()).to(self.device)
 
         interpolation = epsilon * real_slates + ((1 - epsilon) * fake_slates)
         interpolation = torch.autograd.Variable(interpolation, requires_grad=True).to(self.device)
 
-        dis_interpolates = self.discriminator(interpolation, user_interactions_with_padding,
-                                              number_of_interactions_per_user)
+        dis_interpolates = self.discriminator(interpolation)
         grad_outputs = torch.ones(dis_interpolates.size()).to(self.device)
 
         gradients = torch.autograd.grad(outputs=dis_interpolates,
@@ -95,16 +94,14 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         d_loss = dis_real - dis_fake + gradient_penalty
         d_loss.backward()
 
-        self.optimizer_dis.step()
-
         return d_loss
 
     def update_generator(self, user_interactions_with_padding, number_of_interactions_per_user):
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        loss = self.discriminator(slates, user_interactions_with_padding, number_of_interactions_per_user)
+        slates = self.generator(noise)
+        loss = self.discriminator(slates)
         loss = loss.mean()
         loss.backward()
         g_loss = -loss
@@ -148,11 +145,10 @@ def experiments_run():
 
     train_loader, test_loader = get_data_loaders(configs)
 
-    generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
+    generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['noise_hidden_dims'],
+                          configs['hidden_layers_dims_gen'])
 
-    discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                                  configs['hidden_layers_dims_dis'])
+    discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['hidden_layers_dims_dis'])
 
     experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader, configs,
                                                             print_learnable_parameters=True)

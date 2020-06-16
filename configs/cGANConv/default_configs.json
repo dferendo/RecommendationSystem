@@ -1,0 +1,34 @@
+{
+  "experiment_name": "cgan/",
+  "seed": 9023912,
+  "is_training": true,
+  "use_gpu": true,
+  "save_model": true,
+  "continue_from_epoch": -1,
+
+  "__comment": "Dataset Parameters",
+  "data_location": "./dataset/ml-1m/",
+  "implicit_rating": 0,
+  "validation_set_size": 0.15,
+  "test_set_size": 0.15,
+  "minimum_user_interaction": 10,
+  "minimum_movie_interaction": 100,
+
+  "__comment": "Slate Generation Hyper Parameters",
+  "slate_size": 6,
+  "negative_sampling_for_slates": [0],
+
+  "__comment": "Model Parameters All",
+  "num_of_epochs": 50,
+  "train_batch_size": 64,
+  "test_batch_size": 64,
+
+  "__comment": "Generator Parameters",
+  "noise_hidden_dims": 128,
+  "hidden_layers_dims_gen": 512,
+  "learning_rate_gen": 0.0002,
+
+  "__comment": "Discriminator Parameters",
+  "hidden_layers_dims_dis": 512,
+  "learning_rate_dis": 0.0002
+}
