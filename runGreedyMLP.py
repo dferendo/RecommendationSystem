@@ -70,7 +70,7 @@ def experiments_run():
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix)
+    test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix, df_train_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
                              drop_last=True)
 
