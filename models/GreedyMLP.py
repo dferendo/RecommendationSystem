@@ -67,6 +67,9 @@ class GreedyMLP(nn.Module):
         self.embedding_item.reset_parameters()
 
         for item in self.layer_dict.children():
-            item.reset_parameters()
+            try:
+                item.reset_parameters()
+            except AttributeError:
+                pass
 
         self.classifier.reset_parameters()

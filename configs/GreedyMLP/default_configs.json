@@ -21,7 +21,7 @@
   "test_batch_size": 128,
   "neg_sample_per_training_example": 5,
   "hidden_layers_dims": [32, 64, 32, 16],
-  "dropout": 0,
+  "dropout": 0.2,
   "use_bias": true,
   "lr": 0.01,
   "weight_decay": 0

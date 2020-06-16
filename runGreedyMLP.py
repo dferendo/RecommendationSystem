@@ -77,7 +77,7 @@ def experiments_run():
     total_movies = len(df_train_matrix.columns)
     total_users = len(df_train_matrix.index)
 
-    model = GreedyMLP(total_users, total_movies, configs['hidden_layers_dims'], configs['use_bias'])
+    model = GreedyMLP(total_users, total_movies, configs['hidden_layers_dims'], configs['use_bias'], configs['dropout'])
 
     experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, test_loader, total_movies, configs)
     experiment_builder.run_experiment()
