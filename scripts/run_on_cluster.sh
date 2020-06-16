@@ -31,8 +31,8 @@ mkdir -p ${TMP}/datasets/
 export DATASET_DIR=${TMP}/datasets
 
 rsync -ua /home/${STUDENT_ID}/RecommendationSystem/dataset/ml-1m.tar.gz "${DATASET_DIR}"
-tar -xzf "${DATASET_DIR}/ml-1m.tar.gz" -C "${DATASET_DIR}"
+tar -xzf "${DATASET_DIR}/ml-25m.tar.gz" -C "${DATASET_DIR}"
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate tezi
 
-python ${1} --json_configs_string "${2}" --dataset_location "${DATASET_DIR}/ml-1m/"
+python ${1} --json_configs_string "${2}" --dataset_location "${DATASET_DIR}/ml-25m/"
