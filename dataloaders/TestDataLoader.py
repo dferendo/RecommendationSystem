@@ -10,7 +10,6 @@ class NoAdditionalInfoTestDataLoader(Dataset):
         return self.user_movie_matrix.shape[0]
 
     def __getitem__(self, idx):
-        print(idx)
         return self.user_movie_matrix[idx]
 
 
