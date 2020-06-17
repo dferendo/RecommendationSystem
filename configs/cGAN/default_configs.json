@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -26,10 +26,10 @@
 
   "__comment": "Generator Parameters",
   "noise_hidden_dims": 20,
-  "hidden_layers_dims_gen": [40, 80],
+  "hidden_layers_dims_gen": [128, 128, 128],
   "learning_rate_gen": 0.0002,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [160, 60, 40],
+  "hidden_layers_dims_dis": [128, 128, 128],
   "learning_rate_dis": 0.0002
 }

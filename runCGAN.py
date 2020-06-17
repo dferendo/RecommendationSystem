@@ -10,11 +10,48 @@ import torch
 import os
 import pandas as pd
 from torch.utils.data import DataLoader
+import torch
+import torch.nn.functional as F
+
+
+def GDPPLoss(phiFake, phiReal, backward=True):
+    """
+    Taken from https://github.com/facebookresearch/pytorch_GAN_zoo/blob/b75dee40918caabb4fe7ec561522717bf096a8cb/models/loss_criterions/GDPP_loss.py#L6
+    :param phiFake:
+    :param phiReal:
+    :param backward:
+    :return:
+    """
+    def compute_diversity(phi):
+        phi = F.normalize(phi, p=2, dim=1)
+        SB = torch.mm(phi, phi.t())
+        eigVals, eigVecs = torch.symeig(SB, eigenvectors=True)
+        return eigVals, eigVecs
+
+    def normalize_min_max(eigVals):
+        minV, maxV = torch.min(eigVals), torch.max(eigVals)
+        if abs(minV - maxV) < 1e-10:
+            return eigVals
+        return (eigVals - minV) / (maxV - minV)
+
+    fakeEigVals, fakeEigVecs = compute_diversity(phiFake)
+    realEigVals, realEigVecs = compute_diversity(phiReal)
+
+    # Scaling factor to make the two losses operating in comparable ranges.
+    magnitudeLoss = 0.0001 * F.mse_loss(target=realEigVals, input=fakeEigVals)
+    structureLoss = -torch.sum(torch.mul(fakeEigVecs, realEigVecs), 0)
+    normalizedRealEigVals = normalize_min_max(realEigVals)
+    weightedStructureLoss = torch.sum(torch.mul(normalizedRealEigVals, structureLoss))
+    gdppLoss = magnitudeLoss + weightedStructureLoss
+
+    if backward:
+        gdppLoss.backward(retain_graph=True)
+
+    return gdppLoss.item()
 
 
 class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
-    CRITIC_ITERS = 5
-    LAMBDA = 10
+    criterion = torch.nn.BCEWithLogitsLoss()
 
     def pre_epoch_init_function(self):
         pass
@@ -27,23 +64,42 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         number_of_interactions_per_user = values_to_unpack[2].to(self.device)
         real_slates = values_to_unpack[3].to(self.device).float()
 
-        '''    
-        Update discriminator
-        '''
-        loss_dis = self.update_discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        self.optimizer_dis.zero_grad()
 
-        if idx != 0 and idx % self.CRITIC_ITERS == 0:
-            for p in self.discriminator.parameters():
-                p.requires_grad = False
+        dis_real, _ = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        dis_real_loss = self.criterion(dis_real, torch.ones((dis_real.shape[0], 1), dtype=torch.float32, device=self.device))
 
-            loss_gen = self.update_generator(user_interactions_with_padding, number_of_interactions_per_user)
+        noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'], dtype=torch.float32, device=self.device)
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise).detach()
+        dis_fake, _ = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user)
 
-            for p in self.discriminator.parameters():
-                p.requires_grad = True
-        else:
-            loss_gen = None
+        dis_fake_loss = self.criterion(dis_fake, torch.zeros((dis_fake.shape[0], 1), dtype=torch.float32, device=self.device))
 
-        return loss_gen, loss_dis
+        # TODO: mean()?
+        dis_loss = dis_real_loss + dis_fake_loss
+        # TODO: WGAN-GP
+        dis_loss.backward(retain_graph=True)
+        self.optimizer_dis.step()
+
+        # Update the generator
+        self.optimizer_gen.zero_grad()
+        self.optimizer_dis.zero_grad()
+
+        noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'], dtype=torch.float32, device=self.device)
+        fake_slates_gen = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
+        gen_fake, fake_h = self.discriminator(fake_slates_gen, user_interactions_with_padding, number_of_interactions_per_user)
+
+        # Note the labels are switched (People say it help to train)
+        gen_loss = self.criterion(gen_fake, torch.ones((dis_fake.shape[0], 1), dtype=torch.float32, device=self.device)).mean()
+        gen_loss.backward(retain_graph=True)
+
+        _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+
+        gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
+
+        self.optimizer_gen.step()
+
+        return float(gen_loss) + float(gdpp_loss), float(dis_loss)
 
     def eval_iteration(self, values_to_unpack):
         user_interactions_with_padding = values_to_unpack[0].to(self.device)
@@ -56,61 +112,6 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
                                      inference=True)
 
         return fake_slates
-
-    def update_discriminator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user):
-        self.discriminator.zero_grad()
-
-        dis_real = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
-        dis_real = dis_real.mean()
-
-        # Generate fake slates
-        noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
-                            dtype=torch.float32, device=self.device)
-
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        dis_fake = self.discriminator(fake_slates.detach(), user_interactions_with_padding,
-                                      number_of_interactions_per_user)
-        dis_fake = dis_fake.mean()
-
-        # Calculate Gradient policy
-        epsilon = torch.rand(real_slates.shape[0], 1)
-        epsilon = epsilon.expand(real_slates.size()).to(self.device)
-
-        interpolation = epsilon * real_slates + ((1 - epsilon) * fake_slates)
-        interpolation = torch.autograd.Variable(interpolation, requires_grad=True).to(self.device)
-
-        dis_interpolates = self.discriminator(interpolation, user_interactions_with_padding,
-                                              number_of_interactions_per_user)
-        grad_outputs = torch.ones(dis_interpolates.size()).to(self.device)
-
-        gradients = torch.autograd.grad(outputs=dis_interpolates,
-                                        inputs=interpolation,
-                                        grad_outputs=grad_outputs,
-                                        create_graph=True,
-                                        retain_graph=True,
-                                        only_inputs=True)[0]
-
-        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.LAMBDA
-
-        d_loss = dis_real - dis_fake + gradient_penalty
-        d_loss.backward()
-
-        self.optimizer_dis.step()
-
-        return d_loss
-
-    def update_generator(self, user_interactions_with_padding, number_of_interactions_per_user):
-        noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
-                            dtype=torch.float32, device=self.device)
-
-        slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        loss = self.discriminator(slates, user_interactions_with_padding, number_of_interactions_per_user)
-        loss = loss.mean()
-        loss.backward()
-        g_loss = -loss
-
-        self.optimizer_gen.step()
-        return g_loss
 
 
 def get_data_loaders(configs):

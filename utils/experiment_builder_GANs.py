@@ -146,7 +146,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         all_gen_losses = []
         all_dis_losses = []
 
-        with tqdm.tqdm(total=len(self.train_loader) // self.CRITIC_ITERS, file=sys.stdout) as pbar:
+        with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
                 self.generator.zero_grad()
                 self.discriminator.zero_grad()

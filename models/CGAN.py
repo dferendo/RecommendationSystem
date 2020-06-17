@@ -87,6 +87,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.num_of_movies = num_of_movies
         self.embed_dims = embed_dims
+        self.hidden_layers_dims = hidden_layers_dims
 
         # Index work from 0 - (num_of_movies - 1). Thus, we use num_of_movies as a padding index
         self.padding_idx = self.num_of_movies
@@ -96,42 +97,37 @@ class Discriminator(nn.Module):
                                                    embedding_dim=self.embed_dims,
                                                    padding_idx=self.padding_idx)
 
-        layers_block = []
+        self.layer_dict = nn.ModuleDict()
 
         input_dims = (self.num_of_movies * slate_size) + self.embed_dims
 
-        for out_dims in hidden_layers_dims:
-            layers_block.extend(self.dis_block(input_dims, out_dims))
+        for idx, out_dims in enumerate(hidden_layers_dims):
+            self.layer_dict[f'dis_linear_{idx}'] = nn.Linear(input_dims, out_dims)
+            # self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
+            self.layer_dict[f'dis_activation_{idx}'] = nn.LeakyReLU(0.01)
+
             input_dims = out_dims
 
-        self.model_layers = nn.Sequential(
-            *layers_block,
-            nn.Linear(input_dims, 1)
-        )
+        self.layer_dict['output_layer'] = nn.Linear(input_dims, 1)
 
     def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user):
         # Concatenate label embedding and image to produce input
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
 
-        dim_input = torch.cat((slate_input, user_embedding), dim=1)
+        out = torch.cat((slate_input, user_embedding), dim=1)
+        hidden_layers = []
 
-        out = self.model_layers(dim_input)
+        for idx in range(len(self.hidden_layers_dims)):
+            out = self.layer_dict[f'dis_linear_{idx}'](out)
+            # out = self.layer_dict[f'dis_dropout_{idx}'](out)
+            out = self.layer_dict[f'dis_activation_{idx}'](out)
 
-        return out
+            hidden_layers.append(out)
 
-    @staticmethod
-    def dis_block(in_feat, out_feat, normalize=False, dropout=0.2):
-        layers = [nn.Linear(in_feat, out_feat)]
+        out = self.layer_dict['output_layer'](out)
 
-        if normalize:
-            layers.append(nn.BatchNorm1d(num_features=out_feat))
-        if dropout:
-            layers.append(nn.Dropout(dropout))
-
-        layers.append(nn.LeakyReLU(0.01, inplace=True))
-
-        return layers
+        return out, hidden_layers[-2]
 
     def reset_parameters(self):
         """
