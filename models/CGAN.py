@@ -65,7 +65,7 @@ class Generator(nn.Module):
         return slates
 
     @staticmethod
-    def gen_block(in_feat, out_feat, normalize=True, dropout=0.5):
+    def gen_block(in_feat, out_feat, normalize=True, dropout=0.2):
         layers = [nn.Linear(in_feat, out_feat)]
 
         if normalize:
@@ -107,8 +107,8 @@ class Discriminator(nn.Module):
 
         for idx, out_dims in enumerate(hidden_layers_dims):
             self.layer_dict[f'dis_linear_{idx}'] = nn.Linear(input_dims, out_dims)
-            # self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
-            self.layer_dict[f'dis_activation_{idx}'] = nn.LeakyReLU(0.01)
+            self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
+            self.layer_dict[f'dis_activation_{idx}'] = nn.Sigmoid()
 
             input_dims = out_dims
 
@@ -126,7 +126,7 @@ class Discriminator(nn.Module):
 
         for idx in range(len(self.hidden_layers_dims)):
             out = self.layer_dict[f'dis_linear_{idx}'](out)
-            # out = self.layer_dict[f'dis_dropout_{idx}'](out)
+            out = self.layer_dict[f'dis_dropout_{idx}'](out)
             out = self.layer_dict[f'dis_activation_{idx}'](out)
 
             hidden_layers.append(out)

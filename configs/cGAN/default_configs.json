@@ -16,7 +16,7 @@
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
-  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5],
+  "negative_sampling_for_slates": [0],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 200,
@@ -27,9 +27,13 @@
   "__comment": "Generator Parameters",
   "noise_hidden_dims": 20,
   "hidden_layers_dims_gen": [40, 80],
-  "learning_rate_gen": 0.0002,
+  "learning_rate_gen": 0.00005,
+  "gen_beta_1": 0.5,
+  "gen_beta_2": 0.99,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [160, 60, 40],
-  "learning_rate_dis": 0.0002
+  "hidden_layers_dims_dis": [160, 80, 40],
+  "learning_rate_dis": 0.00005,
+  "dis_beta_1": 0.5,
+  "dis_beta_2": 0.99
 }

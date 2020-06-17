@@ -30,8 +30,8 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
-        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=configs['learning_rate_gen'])
-        self.optimizer_dis = torch.optim.Adam(self.discriminator.parameters(), lr=configs['learning_rate_dis'])
+        self.optimizer_gen = torch.optim.Adam(self.generator.parameters(), lr=configs['learning_rate_gen'], betas=(configs['gen_beta_1'], configs['gen_beta_2']))
+        self.optimizer_dis = torch.optim.Adam(self.discriminator.parameters(), lr=configs['learning_rate_dis'], betas=(configs['dis_beta_1'], configs['dis_beta_2']))
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)
