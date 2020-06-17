@@ -38,6 +38,8 @@ class Generator(nn.Module):
         for i in range(self.slate_size):
             self.output_dict[f'output_linear{i}'] = nn.Linear(in_dims, self.num_of_movies)
 
+        self.apply(self.init_weights)
+
     def forward(self, user_interactions_with_padding, number_of_interactions_per_user, response_vector,
                 noise, inference=False):
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
@@ -73,7 +75,7 @@ class Generator(nn.Module):
         if dropout:
             layers.append(nn.Dropout(dropout))
 
-        layers.append(nn.LeakyReLU(0.01, inplace=True))
+        layers.append(nn.LeakyReLU(0.2, inplace=True))
 
         return layers
 
@@ -83,6 +85,11 @@ class Generator(nn.Module):
         Re-initializes the networks parameters
         """
         pass
+
+    def init_weights(self, m):
+        if type(m) == nn.Linear:
+            torch.nn.init.xavier_uniform_(m.weight)
+            m.bias.data.fill_(0.01)
 
 
 class Discriminator(nn.Module):
@@ -113,6 +120,7 @@ class Discriminator(nn.Module):
             input_dims = out_dims
 
         self.layer_dict['output_layer'] = nn.Linear(input_dims, 1)
+        self.apply(self.init_weights)
 
     def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         # Concatenate label embedding and image to produce input
@@ -141,3 +149,8 @@ class Discriminator(nn.Module):
         Re-initializes the networks parameters
         """
         pass
+
+    def init_weights(self, m):
+        if type(m) == nn.Linear:
+            torch.nn.init.xavier_uniform_(m.weight)
+            m.bias.data.fill_(0.01)

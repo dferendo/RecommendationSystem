@@ -25,7 +25,7 @@
   "embed_dims": 52,
 
   "__comment": "Generator Parameters",
-  "noise_hidden_dims": 20,
+  "noise_hidden_dims": 128,
   "hidden_layers_dims_gen": [40, 80],
   "learning_rate_gen": 0.00005,
   "gen_beta_1": 0.5,
