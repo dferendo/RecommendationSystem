@@ -17,7 +17,7 @@ class UserIndexTestDataLoader(Dataset):
     def __init__(self, row_interactions, user_movie_matrix, train_user_movie_matrix):
         self.row_interactions = row_interactions
         self.user_ids = user_movie_matrix.index.to_list()
-        self.test = user_movie_matrix
+
         self.user_movie_matrix = user_movie_matrix.to_numpy()
         self.train_user_movie_matrix = train_user_movie_matrix
 

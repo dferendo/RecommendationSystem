@@ -5,7 +5,7 @@ from utils.experiment_builder import ExperimentBuilderNN
 from dataloaders.PointwiseDataLoader import PointwiseDataLoader
 from dataloaders.TestDataLoader import UserIndexTestDataLoader
 from models.MF import MF
-
+from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 import pandas as pd
 import numpy as np
 
@@ -71,12 +71,48 @@ def experiments_run():
                              drop_last=True)
 
     total_movies = len(df_train_matrix.columns)
-    total_users = len(df_train_matrix.index)
+    # total_users = len(df_train_matrix.index)
+    #
+    # model = MF(total_users, total_movies, configs['embed_dims'], use_bias=configs['use_bias'])
+    #
+    # experiment_builder = MFExperimentBuilder(model, train_loader, test_loader, total_movies, configs)
+    # experiment_builder.run_experiment()
 
-    model = MF(total_users, total_movies, configs['embed_dims'], use_bias=configs['use_bias'])
+    import implicit
+    from scipy import sparse
 
-    experiment_builder = MFExperimentBuilder(model, train_loader, test_loader, total_movies, configs)
-    experiment_builder.run_experiment()
+    # initialize a model
+    model = implicit.bpr.BayesianPersonalizedRanking(factors=50)
+
+    a = sparse.coo_matrix(df_train_matrix.to_numpy().T)
+    temp = sparse.csr_matrix(df_train_matrix.to_numpy())
+
+    # train the model on a sparse matrix of item/user/confidence weights
+    model.fit(a)
+
+    recommendations = model.recommend_all(temp, N=configs['slate_size'])
+
+    predicted_slates = []
+    ground_truth_slates = []
+
+    for values in test_loader:
+        for value in values[0]:
+            predicted_slates.append(recommendations[int(value)])
+
+        ground_truth_slate = values[1].cpu()
+        ground_truth_indexes = np.nonzero(ground_truth_slate)
+        grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
+                                        np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
+
+        ground_truth_slates.extend(grouped_ground_truth)
+
+    predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
+
+    precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+    diversity = movie_diversity(predicted_slates, total_movies)
+
+    print(precision, hr)
+    print(diversity)
 
 
 if __name__ == '__main__':
