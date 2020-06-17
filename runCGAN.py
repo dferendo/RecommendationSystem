@@ -14,20 +14,6 @@ import torch.nn.functional as F
 
 
 def GDPPLoss(phiFake, phiReal, backward=True):
-    r"""
-    Implementation of the GDPP loss. Can be used with any kind of GAN
-    architecture.
-
-    Args:
-
-        phiFake (tensor) : last feature layer of the discriminator on real data
-        phiReal (tensor) : last feature layer of the discriminator on fake data
-        backward (bool)  : should we perform the backward operation ?
-
-    Returns:
-
-        Loss's value. The backward operation in performed within this operator
-    """
     def compute_diversity(phi):
         phi = F.normalize(phi, p=2, dim=1)
         SB = torch.mm(phi, phi.t())
@@ -71,17 +57,18 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         user_interactions_with_padding = values_to_unpack[1].to(self.device)
         number_of_interactions_per_user = values_to_unpack[2].to(self.device)
         real_slates = values_to_unpack[3].to(self.device).float()
+        response_vector = values_to_unpack[4].to(self.device).float()
 
         '''    
         Update discriminator
         '''
-        loss_dis = self.update_discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        loss_dis = self.update_discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
 
         if idx != 0 and idx % self.CRITIC_ITERS == 0:
             for p in self.discriminator.parameters():
                 p.requires_grad = False
 
-            loss_gen = self.update_generator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+            loss_gen = self.update_generator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
 
             for p in self.discriminator.parameters():
                 p.requires_grad = True
@@ -93,19 +80,21 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
     def eval_iteration(self, values_to_unpack):
         user_interactions_with_padding = values_to_unpack[0].to(self.device)
         number_of_interactions_per_user = values_to_unpack[1].to(self.device)
+        response_vector = torch.full((self.configs['test_batch_size'], self.configs['slate_size']), 1,
+                                     device=self.device, dtype=torch.float32)
 
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise,
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, response_vector, noise,
                                      inference=True)
 
         return fake_slates
 
-    def update_discriminator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user):
+    def update_discriminator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         self.optimizer_dis.zero_grad()
 
-        dis_real, _ = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        dis_real, _ = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
 
         dis_real = dis_real.mean()
 
@@ -113,9 +102,9 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, response_vector, noise)
         dis_fake, _ = self.discriminator(fake_slates.detach(), user_interactions_with_padding,
-                                         number_of_interactions_per_user)
+                                         number_of_interactions_per_user, response_vector)
         dis_fake = dis_fake.mean()
 
         # Calculate Gradient policy
@@ -126,7 +115,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         interpolation = torch.autograd.Variable(interpolation, requires_grad=True).to(self.device)
 
         dis_interpolates, _ = self.discriminator(interpolation, user_interactions_with_padding,
-                                                 number_of_interactions_per_user)
+                                                 number_of_interactions_per_user, response_vector)
         grad_outputs = torch.ones(dis_interpolates.size()).to(self.device)
 
         gradients = torch.autograd.grad(outputs=dis_interpolates,
@@ -145,19 +134,19 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
         return d_loss
 
-    def update_generator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user):
+    def update_generator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         self.optimizer_gen.zero_grad()
         self.optimizer_dis.zero_grad()
 
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        fake_loss, fake_h = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, response_vector, noise)
+        fake_loss, fake_h = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
         fake_loss = fake_loss.mean()
         fake_loss.backward(retain_graph=True)
 
-        _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
         gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
 
         g_loss = -fake_loss + gdpp_loss
@@ -200,11 +189,13 @@ def experiments_run():
 
     train_loader, test_loader = get_data_loaders(configs)
 
+    response_vector_dims = 1
+
     generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'])
+                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'], response_vector_dims)
 
     discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                                  configs['hidden_layers_dims_dis'])
+                                  configs['hidden_layers_dims_dis'], response_vector_dims)
 
     experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader, configs,
                                                             print_learnable_parameters=True)

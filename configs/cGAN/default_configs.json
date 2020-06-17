@@ -16,7 +16,7 @@
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
-  "negative_sampling_for_slates": [0],
+  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 200,
