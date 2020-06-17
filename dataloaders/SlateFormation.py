@@ -46,7 +46,7 @@ class SlateFormationDataLoader(Dataset):
 
         slate_one_hot = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
 
-        return self.user_index[idx], padded_interactions, len(user_interactions), slate_one_hot
+        return self.user_index[idx], padded_interactions, len(user_interactions), slate_one_hot, self.response_vector_matrix[idx]
 
 
 class UserConditionedDataLoader(Dataset):

@@ -3,12 +3,13 @@ import torch.nn as nn
 
 
 class Generator(nn.Module):
-    def __init__(self, num_of_movies, slate_size, embed_dims, noise_dim, hidden_layers_dims):
+    def __init__(self, num_of_movies, slate_size, embed_dims, noise_dim, hidden_layers_dims, response_dims):
         super(Generator, self).__init__()
         self.num_of_movies = num_of_movies
         self.embed_dims = embed_dims
         self.noise_dim = noise_dim
         self.slate_size = slate_size
+        self.response_dims = response_dims
 
         # Index work from 0 - (num_of_movies - 1). Thus, we use num_of_movies as a padding index
         self.padding_idx = self.num_of_movies
@@ -19,7 +20,7 @@ class Generator(nn.Module):
                                                    padding_idx=self.padding_idx)
 
         layers_block = []
-        in_dims = self.embed_dims + self.noise_dim
+        in_dims = self.embed_dims + self.noise_dim + self.response_dims
 
         for out_dims in hidden_layers_dims:
             layers_block.extend(self.gen_block(in_dims, out_dims))
@@ -37,11 +38,13 @@ class Generator(nn.Module):
         for i in range(self.slate_size):
             self.output_dict[f'output_linear{i}'] = nn.Linear(in_dims, self.num_of_movies)
 
-    def forward(self, user_interactions_with_padding, number_of_interactions_per_user, noise, inference=False):
+    def forward(self, user_interactions_with_padding, number_of_interactions_per_user, response_vector,
+                noise, inference=False):
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
+        response_vector = response_vector.sum(dim=1).unsqueeze(dim=1)
 
-        gen_input = torch.cat((noise, user_embedding), dim=-1)
+        gen_input = torch.cat((noise, user_embedding, response_vector), dim=1)
         out = self.model_layers(gen_input)
 
         slate_outputs = []
@@ -83,10 +86,11 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, num_of_movies, slate_size, embed_dims, hidden_layers_dims):
+    def __init__(self, num_of_movies, slate_size, embed_dims, hidden_layers_dims, response_vector_dims):
         super(Discriminator, self).__init__()
         self.num_of_movies = num_of_movies
         self.embed_dims = embed_dims
+        self.response_vector_dims = response_vector_dims
         self.hidden_layers_dims = hidden_layers_dims
 
         # Index work from 0 - (num_of_movies - 1). Thus, we use num_of_movies as a padding index
@@ -99,7 +103,7 @@ class Discriminator(nn.Module):
 
         self.layer_dict = nn.ModuleDict()
 
-        input_dims = (self.num_of_movies * slate_size) + self.embed_dims
+        input_dims = (self.num_of_movies * slate_size) + self.embed_dims + self.response_vector_dims
 
         for idx, out_dims in enumerate(hidden_layers_dims):
             self.layer_dict[f'dis_linear_{idx}'] = nn.Linear(input_dims, out_dims)
@@ -110,12 +114,14 @@ class Discriminator(nn.Module):
 
         self.layer_dict['output_layer'] = nn.Linear(input_dims, 1)
 
-    def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user):
+    def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         # Concatenate label embedding and image to produce input
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
+        response_vector = response_vector.sum(dim=1).unsqueeze(dim=1)
 
-        out = torch.cat((slate_input, user_embedding), dim=1)
+        out = torch.cat((slate_input, user_embedding, response_vector), dim=1)
+
         hidden_layers = []
 
         for idx in range(len(self.hidden_layers_dims)):
