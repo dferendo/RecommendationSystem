@@ -19,17 +19,17 @@
   "negative_sampling_for_slates": [0],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 50,
+  "num_of_epochs": 100,
   "train_batch_size": 64,
   "test_batch_size": 64,
-  "embed_dims": 52,
+  "embed_dims": 32,
 
   "__comment": "Generator Parameters",
   "noise_hidden_dims": 20,
-  "hidden_layers_dims_gen": [128, 128, 128],
+  "hidden_layers_dims_gen": [60, 40, 20],
   "learning_rate_gen": 0.0002,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [128, 128, 128],
+  "hidden_layers_dims_dis": [64, 64, 64],
   "learning_rate_dis": 0.0002
 }

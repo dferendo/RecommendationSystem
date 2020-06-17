@@ -14,6 +14,50 @@ import torch
 import torch.nn.functional as F
 
 
+def WGANGPGradientPenalty(input, fake, discriminator, weight, user_interactions_with_padding, number_of_interactions_per_user, backward=True):
+    r"""
+    Gradient penalty as described in
+    "Improved Training of Wasserstein GANs"
+    https://arxiv.org/pdf/1704.00028.pdf
+
+    Args:
+
+        - input (Tensor): batch of real data
+        - fake (Tensor): batch of generated data. Must have the same size
+          as the input
+        - discrimator (nn.Module): discriminator network
+        - weight (float): weight to apply to the penalty term
+        - backward (bool): loss backpropagation
+    """
+
+    batchSize = input.size(0)
+    alpha = torch.rand(batchSize, 1)
+    alpha = alpha.expand(batchSize, int(input.nelement() /
+                                        batchSize)).contiguous().view(
+                                            input.size())
+    alpha = alpha.to(input.device)
+    interpolates = alpha * input + ((1 - alpha) * fake)
+
+    interpolates = torch.autograd.Variable(
+        interpolates, requires_grad=True)
+
+    decisionInterpolate, _ = discriminator(interpolates, user_interactions_with_padding, number_of_interactions_per_user)
+    decisionInterpolate = decisionInterpolate[:, 0].sum()
+
+    gradients = torch.autograd.grad(outputs=decisionInterpolate,
+                                    inputs=interpolates,
+                                    create_graph=True, retain_graph=True)
+
+    gradients = gradients[0].view(batchSize, -1)
+    gradients = (gradients * gradients).sum(dim=1).sqrt()
+    gradient_penalty = (((gradients - 1.0)**2)).sum() * weight
+
+    if backward:
+        gradient_penalty.backward(retain_graph=True)
+
+    return gradient_penalty.item()
+
+
 def GDPPLoss(phiFake, phiReal, backward=True):
     """
     Taken from https://github.com/facebookresearch/pytorch_GAN_zoo/blob/b75dee40918caabb4fe7ec561522717bf096a8cb/models/loss_criterions/GDPP_loss.py#L6
@@ -75,9 +119,12 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
         dis_fake_loss = self.criterion(dis_fake, torch.zeros((dis_fake.shape[0], 1), dtype=torch.float32, device=self.device))
 
-        # TODO: mean()?
         dis_loss = dis_real_loss + dis_fake_loss
-        # TODO: WGAN-GP
+
+        dis_gp_loss = WGANGPGradientPenalty(real_slates, fake_slates, self.discriminator, 10,
+                                            user_interactions_with_padding, number_of_interactions_per_user,
+                                            backward=True)
+
         dis_loss.backward(retain_graph=True)
         self.optimizer_dis.step()
 
