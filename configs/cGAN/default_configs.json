@@ -20,7 +20,7 @@
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 200,
-  "train_batch_size": 64,
+  "train_batch_size": 16,
   "test_batch_size": 64,
   "embed_dims": 52,
 

@@ -81,7 +81,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
             for p in self.discriminator.parameters():
                 p.requires_grad = False
 
-            loss_gen = self.update_generator(user_interactions_with_padding, number_of_interactions_per_user)
+            loss_gen = self.update_generator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
 
             for p in self.discriminator.parameters():
                 p.requires_grad = True
@@ -105,7 +105,8 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
     def update_discriminator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user):
         self.optimizer_dis.zero_grad()
 
-        dis_real = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        dis_real, _ = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+
         dis_real = dis_real.mean()
 
         # Generate fake slates
@@ -113,8 +114,8 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
                             dtype=torch.float32, device=self.device)
 
         fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
-        dis_fake = self.discriminator(fake_slates.detach(), user_interactions_with_padding,
-                                      number_of_interactions_per_user)
+        dis_fake, _ = self.discriminator(fake_slates.detach(), user_interactions_with_padding,
+                                         number_of_interactions_per_user)
         dis_fake = dis_fake.mean()
 
         # Calculate Gradient policy
@@ -124,8 +125,8 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         interpolation = epsilon * real_slates + ((1 - epsilon) * fake_slates)
         interpolation = torch.autograd.Variable(interpolation, requires_grad=True).to(self.device)
 
-        dis_interpolates = self.discriminator(interpolation, user_interactions_with_padding,
-                                              number_of_interactions_per_user)
+        dis_interpolates, _ = self.discriminator(interpolation, user_interactions_with_padding,
+                                                 number_of_interactions_per_user)
         grad_outputs = torch.ones(dis_interpolates.size()).to(self.device)
 
         gradients = torch.autograd.grad(outputs=dis_interpolates,
@@ -144,20 +145,22 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
         return d_loss
 
-    def update_generator(self, user_interactions_with_padding, number_of_interactions_per_user):
+    def update_generator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user):
         self.optimizer_gen.zero_grad()
         self.optimizer_dis.zero_grad()
 
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
-        slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
+        fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, noise)
+        fake_loss, fake_h = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        fake_loss = fake_loss.mean()
+        fake_loss.backward(retain_graph=True)
 
-        loss = self.discriminator(slates, user_interactions_with_padding, number_of_interactions_per_user)
-        loss = loss.mean()
-        loss.backward()
-        g_loss = -loss
+        _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user)
+        gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
 
+        g_loss = -fake_loss + gdpp_loss
         self.optimizer_gen.step()
         return g_loss
 
