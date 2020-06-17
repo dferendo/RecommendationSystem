@@ -1,10 +1,10 @@
 #!/bin/sh
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
-#SBATCH --partition=Teach-Short
+#SBATCH --partition=Teach-LongJobs
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
-#SBATCH --time=0-06:00:00
+#SBATCH --time=2-08:00:00
 
 export CUDA_HOME=/opt/cuda-9.0.176.1/
 
@@ -30,9 +30,9 @@ export TMP=/disk/scratch/${STUDENT_ID}
 mkdir -p ${TMP}/datasets/
 export DATASET_DIR=${TMP}/datasets
 
-rsync -ua /home/${STUDENT_ID}/RecommendationSystem/dataset/ml-1m.tar.gz "${DATASET_DIR}"
-tar -xzf "${DATASET_DIR}/ml-1m.tar.gz" -C "${DATASET_DIR}"
+rsync -ua /home/${STUDENT_ID}/RecommendationSystem/dataset/ml-25m.tar.gz "${DATASET_DIR}"
+tar -xzf "${DATASET_DIR}/ml-25m.tar.gz" -C "${DATASET_DIR}"
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate tezi
 
-python ${1} --json_configs_string "${2}" --dataset_location "${DATASET_DIR}/ml-1m/"
+python ${1} --json_configs_string "${2}" --dataset_location "${DATASET_DIR}/ml-25m/"

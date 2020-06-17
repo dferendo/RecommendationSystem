@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -16,10 +16,10 @@
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
-  "negative_sampling_for_slates": [0],
+  "negative_sampling_for_slates": [0, 1, 2, 3],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 200,
+  "num_of_epochs": 100,
   "train_batch_size": 16,
   "test_batch_size": 64,
   "embed_dims": 52,
