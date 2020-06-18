@@ -27,7 +27,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
         self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'], weight_decay=configs['weight_decay'])
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=configs['lr'], weight_decay=configs['weight_decay'])
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)
@@ -148,22 +148,43 @@ class ExperimentBuilderNN(nn.Module, ABC):
         predicted_slates = []
         ground_truth_slates = []
 
+        import implicit
+        from scipy import sparse
+
+        # initialize a model
+        model = implicit.bpr.BayesianPersonalizedRanking(learning_rate=0.01, regularization=0.001, iterations=30,
+                                                         factors=40)
+
+        a = sparse.coo_matrix(self.train_loader.dataset.train_matrix.to_numpy().T)
+        temp = sparse.csr_matrix(self.train_loader.dataset.train_matrix.to_numpy())
+
+        # train the model on a sparse matrix of item/user/confidence weights
+        model.fit(a)
+
+        recommendations = model.recommend_all(temp, N=self.configs['slate_size'])
+
+        predicted_slates = []
+        ground_truth_slates = []
+
         with torch.no_grad():
             with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
-                    predicted_slate = self.eval_iteration(values_to_unpack)
+                    for value in values_to_unpack[0]:
+                        predicted_slates.append(recommendations[int(value)])
+                    # predicted_slate = self.eval_iteration(values_to_unpack)
 
                     ground_truth_slate = values_to_unpack[1].cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
 
-                    predicted_slates.append(predicted_slate)
+                    # predicted_slates.append(predicted_slate)
                     ground_truth_slates.extend(grouped_ground_truth)
 
                     pbar_val.update(1)
 
-        predicted_slates = torch.cat(predicted_slates, dim=0)
+        predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
+        # predicted_slates = torch.cat(predicted_slates, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
@@ -177,14 +198,14 @@ class ExperimentBuilderNN(nn.Module, ABC):
             print(f"Epoch: {epoch_idx}")
             self.pre_epoch_init_function()
 
-            average_loss = self.run_training_epoch()
+            # average_loss = self.run_training_epoch()
             precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
 
             if precision_mean > self.best_val_model_precision:
                 self.best_val_model_precision = precision_mean
                 self.best_val_model_idx = epoch_idx
 
-            self.writer.add_scalar('Average training loss per epoch', average_loss, epoch_idx)
+            # self.writer.add_scalar('Average training loss per epoch', average_loss, epoch_idx)
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
