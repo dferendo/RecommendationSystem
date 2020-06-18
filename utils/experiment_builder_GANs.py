@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilderGAN(nn.Module, ABC):
-    def __init__(self, generator, discriminator, train_loader, evaluation_loader, configs,
+    def __init__(self, generator, discriminator, train_loader, evaluation_loader, num_of_movies, configs,
                  print_learnable_parameters=True):
         super(ExperimentBuilderGAN, self).__init__()
         self.configs = configs
@@ -20,6 +20,8 @@ class ExperimentBuilderGAN(nn.Module, ABC):
 
         self.generator = generator
         self.discriminator = discriminator
+
+        self.num_of_movies = num_of_movies
 
         self.generator.reset_parameters()
         self.discriminator.reset_parameters()

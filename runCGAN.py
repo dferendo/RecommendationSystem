@@ -57,6 +57,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         user_interactions_with_padding = values_to_unpack[1].to(self.device)
         number_of_interactions_per_user = values_to_unpack[2].to(self.device)
         real_slates = values_to_unpack[3].to(self.device).float()
+        real_slates = real_slates.view(real_slates.shape[0], self.configs['slate_size'], self.num_of_movies)
         response_vector = values_to_unpack[4].to(self.device).float()
 
         '''    
@@ -108,7 +109,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         dis_fake = dis_fake.mean()
 
         # Calculate Gradient policy
-        epsilon = torch.rand(real_slates.shape[0], 1)
+        epsilon = torch.rand(real_slates.shape[0], 1, 1)
         epsilon = epsilon.expand(real_slates.size()).to(self.device)
 
         interpolation = epsilon * real_slates + ((1 - epsilon) * fake_slates)
@@ -147,9 +148,10 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         fake_loss.backward(retain_graph=True)
 
         _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
-        gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
+        # gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
 
-        g_loss = -fake_loss + gdpp_loss
+        # g_loss = -fake_loss + gdpp_loss
+        g_loss = -fake_loss
         self.optimizer_gen.step()
         return g_loss
 
@@ -190,15 +192,15 @@ def experiments_run():
     train_loader, test_loader = get_data_loaders(configs)
 
     response_vector_dims = 1
+    num_of_movies = train_loader.dataset.number_of_movies
 
-    generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                          configs['noise_hidden_dims'], configs['hidden_layers_dims_gen'], response_vector_dims)
+    generator = Generator(num_of_movies, configs['slate_size'], response_vector_dims, configs['embed_dims'],
+                          configs['noise_hidden_dims'], 512, configs['train_batch_size'])
 
-    discriminator = Discriminator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],
-                                  configs['hidden_layers_dims_dis'], response_vector_dims)
+    discriminator = Discriminator(512, configs['slate_size'], num_of_movies)
 
-    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader, configs,
-                                                            print_learnable_parameters=True)
+    experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader,
+                                                            num_of_movies, configs, print_learnable_parameters=True)
     experiment_builder.run_experiment()
 
 
