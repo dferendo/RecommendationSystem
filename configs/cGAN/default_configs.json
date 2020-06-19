@@ -1,6 +1,6 @@
 {
   "experiment_name": "cgan/",
-  "seed": 9023912,
+  "seed": 0,
   "is_training": true,
   "use_gpu": true,
   "save_model": false,
