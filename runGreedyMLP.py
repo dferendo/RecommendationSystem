@@ -28,7 +28,6 @@ class GreedyMLPExperimentBuilder(ExperimentBuilderNN):
         ratings = values_to_unpack[2].to(self.device).float()
 
         predicted = self.model(user_indexes, movie_indexes)
-
         loss = self.criterion(predicted.squeeze(), ratings)
 
         return loss
@@ -71,15 +70,16 @@ def experiments_run():
                               drop_last=True)
 
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix, df_train_matrix)
-    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
-                             drop_last=True)
+    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=False, num_workers=4,
+                             drop_last=False)
 
     total_movies = len(df_train_matrix.columns)
     total_users = len(df_train_matrix.index)
 
     model = GreedyMLP(total_users, total_movies, configs['hidden_layers_dims'], configs['use_bias'], configs['dropout'])
+    print(model)
 
-    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, test_loader, total_movies, configs)
+    experiment_builder = GreedyMLPExperimentBuilder(model, train_loader, test_loader, total_movies, configs, print_learnable_parameters=False)
     experiment_builder.run_experiment()
 
 

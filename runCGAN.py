@@ -147,9 +147,10 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         fake_loss.backward(retain_graph=True)
 
         _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
-        gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
+        # gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
 
-        g_loss = -fake_loss + gdpp_loss
+        # g_loss = -fake_loss + gdpp_loss
+        g_loss = -fake_loss
         self.optimizer_gen.step()
         return g_loss
 

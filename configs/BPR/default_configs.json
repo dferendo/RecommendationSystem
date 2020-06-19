@@ -1,6 +1,6 @@
 {
   "experiment_name": "BPR/",
-  "seed": 9023912,
+  "seed": 0,
   "is_training": true,
   "use_gpu": true,
   "save_model": false,
@@ -17,11 +17,11 @@
   "__comment": "Model Parameters",
   "num_of_epochs": 30,
   "slate_size": 6,
-  "train_batch_size": 1024,
+  "train_batch_size": 4096,
   "test_batch_size": 128,
-  "neg_sample_per_training_example": 3,
+  "neg_sample_per_training_example": 4,
   "embed_dims": 40,
   "use_bias": true,
   "lr": 0.01,
-  "weight_decay": 0
+  "weight_decay": 0.001
 }

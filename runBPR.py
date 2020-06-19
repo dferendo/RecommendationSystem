@@ -53,7 +53,6 @@ class BPRExperimentBuilder(ExperimentBuilderNN):
             slate = torch.topk(prediction_i, self.configs['slate_size'])
 
             slates.append(slate.indices)
-
         predicted_slates = torch.stack(slates, dim=0)
 
         return predicted_slates
@@ -69,11 +68,11 @@ def experiments_run():
     train_dataset = PairwiseDataLoader(df_train, df_train_matrix, configs['neg_sample_per_training_example'])
 
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
-                              drop_last=True)
+                              drop_last=False)
 
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix, df_train_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
-                             drop_last=True)
+                             drop_last=False)
 
     total_movies = len(df_train_matrix.columns)
     total_users = len(df_train_matrix.index)
