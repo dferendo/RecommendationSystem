@@ -129,7 +129,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
 
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
-                self.model.zero_grad()
+                self.optimizer.zero_grad()
 
                 loss = self.train_iteration(idx, values_to_unpack)
 

@@ -82,7 +82,7 @@ def experiments_run():
     from scipy import sparse
 
     # initialize a model
-    model = implicit.bpr.BayesianPersonalizedRanking(factors=50)
+    model = implicit.bpr.BayesianPersonalizedRanking(learning_rate=0.01, regularization=0.001, iterations=30, factors=40)
 
     a = sparse.coo_matrix(df_train_matrix.to_numpy().T)
     temp = sparse.csr_matrix(df_train_matrix.to_numpy())

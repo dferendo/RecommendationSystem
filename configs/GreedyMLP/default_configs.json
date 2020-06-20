@@ -1,6 +1,6 @@
 {
   "experiment_name": "MLP/",
-  "seed": 9023912,
+  "seed": 0,
   "is_training": true,
   "use_gpu": true,
   "save_model": false,
@@ -20,9 +20,9 @@
   "train_batch_size": 512,
   "test_batch_size": 128,
   "neg_sample_per_training_example": 3,
-  "hidden_layers_dims": [32, 32, 16, 8],
-  "dropout": 0,
+  "hidden_layers_dims": [16, 64, 32, 16, 8],
+  "dropout": 0.2,
   "use_bias": true,
   "lr": 0.005,
-  "weight_decay": 0.0000001
+  "weight_decay": 0.0
 }
