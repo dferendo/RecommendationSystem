@@ -5,7 +5,7 @@ import argparse
 
 '''
 Example: 
-python ./RunMultipleJobs.py --default_configs ./configs/cGAN/default_configs.json --hyper_parameters_tuning ./configs/cGAN/multi_runs.csv --run_file runCGAN.py --run_on_cluster false
+python ./RunMultipleJobs.py --default_configs ./configs/cGAN/default_configs.json --hyper_parameters_tuning ./configs/cGAN/multi_runs.csv --run_file runCGAN.py --run_on_cluster false --dataset ml-1m
 '''
 
 
@@ -24,9 +24,11 @@ parser.add_argument('--default_configs', nargs="?", type=str, required=True, hel
 parser.add_argument('--hyper_parameters_tuning', nargs="?", type=str, required=True, help='')
 parser.add_argument('--run_file', nargs="?", type=str, required=True, help='')
 parser.add_argument('--run_on_cluster', nargs="?", type=str2bool, required=True, help='')
+parser.add_argument('--dataset', nargs="?", type=str, default=None, help='')
 args = parser.parse_args()
 
 bash_script_location = './scripts/run_on_cluster.sh'
+
 
 with open(args.default_configs, 'r') as json_configs:
     default_config = json.load(json_configs)
@@ -59,6 +61,8 @@ with open(args.hyper_parameters_tuning, 'r') as hparams:
         json_merged = json.dumps(json_merged)
 
         if args.run_on_cluster:
-            os.system(f"sbatch {bash_script_location} {args.run_file} '{json_merged}'")
+            assert args.dataset in ['ml-1m', 'ml-25m']
+
+            os.system(f"sbatch {bash_script_location} {args.run_file} {args.dataset} '{json_merged}'")
         else:
             os.system(f"python {args.run_file} --json_configs_string '{json_merged}'")
