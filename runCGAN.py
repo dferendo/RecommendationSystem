@@ -197,7 +197,7 @@ def experiments_run():
     generator = Generator(num_of_movies, configs['slate_size'], response_vector_dims, configs['embed_dims'],
                           configs['noise_hidden_dims'], 512, configs['train_batch_size'])
 
-    discriminator = Discriminator(512, configs['slate_size'], num_of_movies)
+    discriminator = Discriminator(512, configs['slate_size'], num_of_movies, configs['embed_dims'], response_vector_dims)
 
     experiment_builder = FullyConnectedGANExperimentBuilder(generator, discriminator, train_loader, test_loader,
                                                             num_of_movies, configs, print_learnable_parameters=True)
