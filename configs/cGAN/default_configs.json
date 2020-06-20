@@ -26,13 +26,13 @@
 
   "__comment": "Generator Parameters",
   "noise_hidden_dims": 128,
-  "hidden_layers_dims_gen": [40, 80],
+  "gen_conv_dims": 128,
   "learning_rate_gen": 0.0001,
   "gen_beta_1": 0.5,
   "gen_beta_2": 0.99,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [160, 80, 40],
+  "dis_conv_dims": 128,
   "learning_rate_dis": 0.0001,
   "dis_beta_1": 0.5,
   "dis_beta_2": 0.99
