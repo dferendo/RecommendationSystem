@@ -31,6 +31,8 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
     grouped_users = row_interactions.groupby(['userId'])['movieId'].apply(list)
 
+    print(grouped_users)
+
     all_samples = []
 
     with tqdm.tqdm(total=len(grouped_users), file=sys.stdout) as pbar:

@@ -21,9 +21,8 @@ class ListCVAEExperimentBuilder(ExperimentBuilderNN):
         slates = slates.view(slates.shape[0] * slates.shape[1])
 
         entropy_loss = self.criterion(recon_slates, slates)
-        KLD = 0.5 * torch.sum(1 + prior_log_variance - prior_mu.pow(2) - prior_log_variance.exp())
-
-        return KLD - entropy_loss
+        KLD = -0.5 * torch.sum(1 + prior_log_variance - prior_mu.pow(2) - prior_log_variance.exp())
+        return entropy_loss + KLD
 
     def pre_epoch_init_function(self):
         pass
