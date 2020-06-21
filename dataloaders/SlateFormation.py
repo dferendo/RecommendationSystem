@@ -8,7 +8,7 @@ class SlateFormationDataLoader(Dataset):
         self.user_movie_matrix = user_movie_matrix
         self.number_of_movies = len(user_movie_matrix.columns)
 
-        self.user_index = None
+        self.user_ids = None
         self.slate_vector_matrix = None
         self.response_vector_matrix = None
         self.user_interactions_values = None
@@ -17,7 +17,7 @@ class SlateFormationDataLoader(Dataset):
         self.convert_to_vector_form()
 
     def convert_to_vector_form(self):
-        self.user_index = np.stack(self.slate_formations['User Index'].values)
+        self.user_ids = np.stack(self.slate_formations['User Id'].values)
 
         self.slate_vector_matrix = np.stack(self.slate_formations['Slate Movies'].str.split('|').values)
         self.slate_vector_matrix = self.slate_vector_matrix.astype(np.int32)
@@ -46,13 +46,15 @@ class SlateFormationDataLoader(Dataset):
         #
         # slate_one_hot = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
 
-        return self.user_index[idx], padded_interactions, len(user_interactions), self.slate_vector_matrix[idx], self.response_vector_matrix[idx]
+        return self.user_ids[idx], padded_interactions, len(user_interactions), self.slate_vector_matrix[idx], self.response_vector_matrix[idx]
 
 
 class UserConditionedDataLoader(Dataset):
-    def __init__(self, row_interactions, user_movie_matrix, train_row_interactions, train_user_movie_matrix):
+    def __init__(self, row_interactions, user_movie_matrix, train_row_interactions, train_user_movie_matrix, slate_formations):
         self.row_interactions = row_interactions
+        self.user_ids = user_movie_matrix.index.to_list()
         self.user_movie_matrix = user_movie_matrix.to_numpy()
+        self.slate_formations = slate_formations
 
         self.train_user_movie_matrix = train_user_movie_matrix
         self.number_of_movies = len(train_user_movie_matrix.columns)
@@ -65,7 +67,9 @@ class UserConditionedDataLoader(Dataset):
         return self.user_movie_matrix.shape[0]
 
     def __getitem__(self, idx):
-        user_interactions = np.nonzero(self.user_movie_matrix[idx])[0]
+        user_id = self.user_ids[idx]
+        user_interactions = self.slate_formations[self.slate_formations['User Id'] == user_id]['User Interactions'].to_list()
+        user_interactions = np.array(user_interactions[0].split('|'))
 
         # The padding idx is the *self.number_of_movies*
         padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)

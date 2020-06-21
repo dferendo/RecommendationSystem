@@ -157,7 +157,6 @@ class ExperimentBuilderNN(nn.Module, ABC):
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
-
                     predicted_slates.append(predicted_slate)
                     ground_truth_slates.extend(grouped_ground_truth)
 

@@ -79,7 +79,6 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
                     slate_movies.extend(negative_indexes)
 
-                user_index = user_movie_matrix.index.get_loc(user_id)
                 response_vector = response_vector.tolist()
 
                 # Shuffling the negative values
@@ -87,7 +86,7 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
                 np.random.shuffle(shuffled)
                 slate_movies, response_vector = zip(*shuffled)
 
-                sample = [user_index,
+                sample = [user_id,
                           '|'.join(str(e) for e in all_user_interactions_indexes),
                           '|'.join(str(e) for e in slate_movies),
                           '|'.join(str(e) for e in response_vector)]
@@ -96,7 +95,7 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
             pbar.update(1)
 
-    df = pd.DataFrame(all_samples, columns=['User Index', 'User Interactions', 'Slate Movies', 'Response Vector'])
+    df = pd.DataFrame(all_samples, columns=['User Id', 'User Interactions', 'Slate Movies', 'Response Vector'])
     df.to_csv(save_location, index=False)
 
     print("Time taken in seconds: ", time.process_time() - start)
