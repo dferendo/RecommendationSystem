@@ -114,13 +114,14 @@ class Discriminator(nn.Module):
 
         for idx, out_dims in enumerate(hidden_layers_dims):
             self.layer_dict[f'dis_linear_{idx}'] = nn.Linear(input_dims, out_dims)
-            self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
+            # self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
             self.layer_dict[f'dis_activation_{idx}'] = nn.Sigmoid()
 
             input_dims = out_dims
 
         self.layer_dict['output_layer'] = nn.Linear(input_dims, 1)
         self.apply(self.init_weights)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, slate_input, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         # Concatenate label embedding and image to produce input
@@ -134,12 +135,14 @@ class Discriminator(nn.Module):
 
         for idx in range(len(self.hidden_layers_dims)):
             out = self.layer_dict[f'dis_linear_{idx}'](out)
-            out = self.layer_dict[f'dis_dropout_{idx}'](out)
+            # out = self.layer_dict[f'dis_dropout_{idx}'](out)
             out = self.layer_dict[f'dis_activation_{idx}'](out)
 
             hidden_layers.append(out)
 
         out = self.layer_dict['output_layer'](out)
+
+        out = self.sigmoid(out)
 
         return out, hidden_layers[-2]
 
