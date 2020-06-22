@@ -85,4 +85,4 @@ class SlateFormationTestDataLoader(Dataset):
         for mark in ground_truth:
             ground_truth_one_hot[int(mark)] = 1
 
-        return padded_interactions, len(user_interactions), ground_truth_one_hot
+        return idx, padded_interactions, len(user_interactions), ground_truth_one_hot
