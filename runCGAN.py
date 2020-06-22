@@ -199,6 +199,8 @@ def experiments_run():
 
     train_loader, test_loader = get_data_loaders(configs)
 
+    print('number of movies: ', train_loader.dataset.number_of_movies)
+
     response_vector_dims = 1
 
     generator = Generator(train_loader.dataset.number_of_movies, configs['slate_size'], configs['embed_dims'],

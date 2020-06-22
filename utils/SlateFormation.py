@@ -128,3 +128,5 @@ def generate_test_slate_formation(row_interactions, train_row_interactions, user
     df.to_csv(save_location, index=False)
 
     print("Time taken in seconds: ", time.process_time() - start)
+
+    return df
