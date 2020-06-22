@@ -22,7 +22,7 @@
   "num_of_epochs": 50,
   "train_batch_size": 32,
   "test_batch_size": 64,
-  "embed_dims": 52,
+  "embed_dims": 16,
   "latent_dims": 16,
   "lr": 0.0001,
   "beta_1": 0.5,
@@ -30,8 +30,8 @@
   "weight_decay": 0,
 
   "__comment": "Encoder Parameters",
-  "encoder_dims": [128, 256],
+  "encoder_dims": [20, 40],
 
   "__comment": "Discriminator Parameters",
-  "decoder_dims": [128, 256]
+  "decoder_dims": [20, 40]
 }

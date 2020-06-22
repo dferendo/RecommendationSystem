@@ -31,8 +31,6 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
     grouped_users = row_interactions.groupby(['userId'])['movieId'].apply(list)
 
-    print(grouped_users)
-
     all_samples = []
 
     with tqdm.tqdm(total=len(grouped_users), file=sys.stdout) as pbar:
@@ -101,3 +99,32 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
     print("Time taken in seconds: ", time.process_time() - start)
 
     return df
+
+
+def generate_test_slate_formation(row_interactions, train_row_interactions, user_movie_matrix, save_location):
+    print("Generating slate formation.....")
+    start = time.process_time()
+
+    grouped_users = row_interactions.groupby(['userId'])['movieId'].apply(list)
+    train_grouped_users = train_row_interactions.groupby(['userId'])
+    all_samples = []
+
+    with tqdm.tqdm(total=len(grouped_users), file=sys.stdout) as pbar:
+        for user_id, user_interactions in grouped_users.items():
+            ground_truth = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id), user_interactions))
+            training_interaction = train_grouped_users.get_group(user_id)['movieId'].values
+
+            user_condition = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id), training_interaction))
+
+            sample = [user_id,
+                      '|'.join(str(e) for e in ground_truth),
+                      '|'.join(str(e) for e in user_condition)]
+
+            all_samples.append(sample)
+
+            pbar.update(1)
+
+    df = pd.DataFrame(all_samples, columns=['User Id', 'Ground Truth', 'User Condition'])
+    df.to_csv(save_location, index=False)
+
+    print("Time taken in seconds: ", time.process_time() - start)

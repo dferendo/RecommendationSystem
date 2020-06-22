@@ -1,9 +1,9 @@
 from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
-from utils.SlateFormation import generate_slate_formation
+from utils.SlateFormation import generate_slate_formation, generate_test_slate_formation
 from utils.experiment_builder_GANs import ExperimentBuilderGAN
-from dataloaders.SlateFormation import SlateFormationDataLoader, UserConditionedDataLoader
+from dataloaders.SlateFormation import SlateFormationDataLoader, SlateFormationTestDataLoader
 from models.CGAN import Generator, Discriminator
 
 import torch
@@ -156,27 +156,36 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
 
 def get_data_loaders(configs):
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
-
     slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
-                                                         '-'.join(
-                                                             str(e) for e in configs['negative_sampling_for_slates']),
+                                                         '-'.join(str(e) for e in configs['negative_sampling_for_slates']),
                                                          configs['is_training'])
     slate_formation_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
 
+    slate_formation_file_name = 'sf_{}_{}_{}_test.csv'.format(configs['slate_size'],
+                                                              '-'.join(str(e) for e in configs['negative_sampling_for_slates']),
+                                                              configs['is_training'])
+
+    slate_formation_test_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
+
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
+
     # Check if we have the slates for training
-    if os.path.isfile(slate_formation_file_location):
+    if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location):
         slate_formation = pd.read_csv(slate_formation_file_location)
+        test_slate_formation = pd.read_csv(slate_formation_test_file_location)
     else:
         slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
                                                    configs['negative_sampling_for_slates'],
                                                    slate_formation_file_location)
 
-    train_dataset = SlateFormationDataLoader(slate_formation, df_train_matrix)
+        test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
+                                                             slate_formation_test_file_location)
+
+    train_dataset = SlateFormationDataLoader(slate_formation, len(df_train_matrix.columns))
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
-    test_dataset = UserConditionedDataLoader(df_test, df_test_matrix, df_train, df_train_matrix, slate_formation)
+    test_dataset = SlateFormationTestDataLoader(test_slate_formation, len(df_train_matrix.columns))
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
                              drop_last=True)
 
