@@ -11,13 +11,41 @@ import os
 import pandas as pd
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from torch.autograd import Variable
+
+
+def GDPPLoss(phiFake, phiReal, backward=True):
+    def compute_diversity(phi):
+        phi = F.normalize(phi, p=2, dim=1)
+        SB = torch.mm(phi, phi.t())
+        eigVals, eigVecs = torch.symeig(SB, eigenvectors=True)
+        return eigVals, eigVecs
+
+    def normalize_min_max(eigVals):
+        minV, maxV = torch.min(eigVals), torch.max(eigVals)
+        if abs(minV - maxV) < 1e-10:
+            return eigVals
+        return (eigVals - minV) / (maxV - minV)
+
+    fakeEigVals, fakeEigVecs = compute_diversity(phiFake)
+    realEigVals, realEigVecs = compute_diversity(phiReal)
+
+    # Scaling factor to make the two losses operating in comparable ranges.
+    magnitudeLoss = 0.0001 * F.mse_loss(target=realEigVals, input=fakeEigVals)
+    structureLoss = -torch.sum(torch.mul(fakeEigVecs, realEigVecs), 0)
+    normalizedRealEigVals = normalize_min_max(realEigVals)
+    weightedStructureLoss = torch.sum(
+        torch.mul(normalizedRealEigVals, structureLoss))
+    gdppLoss = magnitudeLoss + weightedStructureLoss
+
+    if backward:
+        gdppLoss.backward(retain_graph=True)
+
+    return gdppLoss.item()
 
 
 class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
     CRITIC_ITERS = 5
     LAMBDA = 10
-    adversarial_loss = torch.nn.BCELoss()
 
     def pre_epoch_init_function(self):
         pass
@@ -36,16 +64,16 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         '''
         loss_dis = self.update_discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
 
-        # if idx != 0 and idx % self.CRITIC_ITERS == 0:
-        #     for p in self.discriminator.parameters():
-        #         p.requires_grad = False
-        #
-        loss_gen = self.update_generator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
+        if idx != 0 and idx % self.CRITIC_ITERS == 0:
+            for p in self.discriminator.parameters():
+                p.requires_grad = False
 
-            # for p in self.discriminator.parameters():
-            #     p.requires_grad = True
-        # else:
-        #     loss_gen = None
+            loss_gen = self.update_generator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
+
+            for p in self.discriminator.parameters():
+                p.requires_grad = True
+        else:
+            loss_gen = None
 
         return loss_gen, loss_dis
 
@@ -68,26 +96,40 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
         dis_real, _ = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
 
+        dis_real = dis_real.mean()
+
         # Generate fake slates
         noise = torch.randn(user_interactions_with_padding.shape[0], self.configs['noise_hidden_dims'],
                             dtype=torch.float32, device=self.device)
 
         fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, response_vector, noise)
-        print(fake_slates)
-
         dis_fake, _ = self.discriminator(fake_slates.detach(), user_interactions_with_padding,
                                          number_of_interactions_per_user, response_vector)
+        dis_fake = dis_fake.mean()
 
-        # Adversarial ground truths
-        valid = Variable(torch.Tensor(real_slates.size(0), 1).fill_(1.0), requires_grad=False)
-        fake = Variable(torch.Tensor(real_slates.size(0), 1).fill_(0.0), requires_grad=False)
+        # Calculate Gradient policy
+        epsilon = torch.rand(real_slates.shape[0], 1)
+        epsilon = epsilon.expand(real_slates.size()).to(self.device)
 
-        real_loss = self.adversarial_loss(dis_real, valid)
-        fake_loss = self.adversarial_loss(dis_fake, fake)
+        interpolation = epsilon * real_slates + ((1 - epsilon) * fake_slates)
+        interpolation = torch.autograd.Variable(interpolation, requires_grad=True).to(self.device)
 
-        d_loss = (real_loss + fake_loss) / 2
+        dis_interpolates, _ = self.discriminator(interpolation, user_interactions_with_padding,
+                                                 number_of_interactions_per_user, response_vector)
+        grad_outputs = torch.ones(dis_interpolates.size()).to(self.device)
 
+        gradients = torch.autograd.grad(outputs=dis_interpolates,
+                                        inputs=interpolation,
+                                        grad_outputs=grad_outputs,
+                                        create_graph=True,
+                                        retain_graph=True,
+                                        only_inputs=True)[0]
+
+        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.LAMBDA
+
+        d_loss = dis_real - dis_fake + gradient_penalty
         d_loss.backward()
+
         self.optimizer_dis.step()
 
         return d_loss
@@ -101,12 +143,14 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
 
         fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, response_vector, noise)
         fake_loss, fake_h = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
-        valid = Variable(torch.Tensor(real_slates.size(0), 1).fill_(1.0), requires_grad=False)
-        g_loss = self.adversarial_loss(fake_loss, valid)
+        fake_loss = fake_loss.mean()
+        fake_loss.backward(retain_graph=True)
+
+        _, real_h = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
         # gdpp_loss = GDPPLoss(real_h, fake_h, backward=True)
 
         # g_loss = -fake_loss + gdpp_loss
-        g_loss.backward()
+        g_loss = -fake_loss
         self.optimizer_gen.step()
         return g_loss
 
@@ -123,7 +167,7 @@ def get_data_loaders(configs):
 
     slate_formation_test_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
 
-    # df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
 
     # Check if we have the slates for training
     if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location):
@@ -137,11 +181,11 @@ def get_data_loaders(configs):
         test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
                                                              slate_formation_test_file_location)
 
-    train_dataset = SlateFormationDataLoader(slate_formation, 8)
+    train_dataset = SlateFormationDataLoader(slate_formation, len(df_train_matrix.columns), one_hot_slates=True)
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=False, num_workers=4,
                               drop_last=True)
 
-    test_dataset = SlateFormationTestDataLoader(test_slate_formation, 8)
+    test_dataset = SlateFormationTestDataLoader(test_slate_formation, len(df_train_matrix.columns))
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
                              drop_last=True)
 

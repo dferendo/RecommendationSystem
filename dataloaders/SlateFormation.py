@@ -3,9 +3,10 @@ from torch.utils.data import Dataset
 
 
 class SlateFormationDataLoader(Dataset):
-    def __init__(self, slate_formations, number_of_movies):
+    def __init__(self, slate_formations, number_of_movies, one_hot_slates):
         self.slate_formations = slate_formations
         self.number_of_movies = number_of_movies
+        self.one_hot_slates = one_hot_slates
 
         self.user_ids = None
         self.slate_vector_matrix = None
@@ -38,14 +39,16 @@ class SlateFormationDataLoader(Dataset):
         # The padding idx is the *self.number_of_movies*
         padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)
         padded_interactions[0:len(user_interactions)] = user_interactions
+        slates = self.slate_vector_matrix[idx]
 
-        # slate_values = np.array(self.slate_vector_matrix[idx])
-        # slate_one_hot = np.zeros((len(self.slate_vector_matrix[idx]), self.number_of_movies))
-        # slate_one_hot[np.arange(slate_values.size), slate_values] = 1
-        #
-        # slate_one_hot = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
+        if self.one_hot_slates:
+            slate_values = np.array(self.slate_vector_matrix[idx])
+            slate_one_hot = np.zeros((len(self.slate_vector_matrix[idx]), self.number_of_movies))
+            slate_one_hot[np.arange(slate_values.size), slate_values] = 1
 
-        return self.user_ids[idx], padded_interactions, len(user_interactions), self.slate_vector_matrix[idx], self.response_vector_matrix[idx]
+            slates = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
+
+        return self.user_ids[idx], padded_interactions, len(user_interactions), slates, self.response_vector_matrix[idx]
 
 
 class SlateFormationTestDataLoader(Dataset):

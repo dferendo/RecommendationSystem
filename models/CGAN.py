@@ -114,7 +114,7 @@ class Discriminator(nn.Module):
 
         for idx, out_dims in enumerate(hidden_layers_dims):
             self.layer_dict[f'dis_linear_{idx}'] = nn.Linear(input_dims, out_dims)
-            # self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
+            self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
             self.layer_dict[f'dis_activation_{idx}'] = nn.Sigmoid()
 
             input_dims = out_dims
@@ -135,7 +135,7 @@ class Discriminator(nn.Module):
 
         for idx in range(len(self.hidden_layers_dims)):
             out = self.layer_dict[f'dis_linear_{idx}'](out)
-            # out = self.layer_dict[f'dis_dropout_{idx}'](out)
+            out = self.layer_dict[f'dis_dropout_{idx}'](out)
             out = self.layer_dict[f'dis_activation_{idx}'](out)
 
             hidden_layers.append(out)
@@ -144,7 +144,8 @@ class Discriminator(nn.Module):
 
         out = self.sigmoid(out)
 
-        return out, hidden_layers[-2]
+        # return out, hidden_layers[-2]
+        return out, None
 
     def reset_parameters(self):
         """

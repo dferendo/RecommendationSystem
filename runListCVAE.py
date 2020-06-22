@@ -98,7 +98,7 @@ def get_data_loaders(configs):
         test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
                                                              slate_formation_test_file_location)
 
-    train_dataset = SlateFormationDataLoader(slate_formation, len(df_train_matrix.columns))
+    train_dataset = SlateFormationDataLoader(slate_formation, len(df_train_matrix.columns), one_hot_slates=False)
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=False, num_workers=4,
                               drop_last=True)
 
