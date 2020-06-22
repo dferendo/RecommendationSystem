@@ -2,7 +2,6 @@ from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
 from utils.SlateFormation import generate_slate_formation, generate_test_slate_formation
-from utils.experiment_builder_GANs import ExperimentBuilderGAN
 from dataloaders.SlateFormation import SlateFormationDataLoader, SlateFormationTestDataLoader
 from models.ListCVAE import ListCVAE
 
@@ -11,25 +10,6 @@ import os
 import pandas as pd
 from torch.utils.data import DataLoader
 from utils.experiment_builder import ExperimentBuilderNN
-import matplotlib.pyplot as plt
-
-
-def plot_grad_flow(named_parameters):
-    ave_grads = []
-    layers = []
-    for n, p in named_parameters:
-        if(p.requires_grad) and ("bias" not in n):
-            layers.append(n)
-            ave_grads.append(p.grad.abs().mean())
-    plt.plot(ave_grads, alpha=0.3, color="b")
-    plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
-    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
-    plt.xlim(xmin=0, xmax=len(ave_grads))
-    plt.xlabel("Layers")
-    plt.ylabel("average gradient")
-    plt.title("Gradient flow")
-    plt.grid(True)
-    plt.show()
 
 
 class ListCVAEExperimentBuilder(ExperimentBuilderNN):
@@ -41,7 +21,8 @@ class ListCVAEExperimentBuilder(ExperimentBuilderNN):
 
         entropy_loss = self.criterion(recon_slates, slates)
         KLD = -0.5 * torch.sum(1 + prior_log_variance - prior_mu.pow(2) - prior_log_variance.exp())
-        return entropy_loss + KLD
+
+        return entropy_loss + (KLD * self.configs['beta_weight'])
 
     def pre_epoch_init_function(self):
         pass
@@ -120,7 +101,7 @@ def experiments_run():
     device = torch.device("cuda")
 
     model = ListCVAE(train_loader.dataset.number_of_movies, configs['slate_size'], response_vector_dims, configs['embed_dims'],
-                     configs['encoder_dims'], configs['latent_dims'], configs['decoder_dims'], device)
+                     configs['encoder_dims'], configs['latent_dims'], configs['decoder_dims'], configs['prior_dims'], device)
 
     print(model)
 

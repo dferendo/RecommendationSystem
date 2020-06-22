@@ -5,7 +5,7 @@ from torch import nn
 
 class ListCVAE(nn.Module):
     def __init__(self, num_of_movies, slate_size, response_dims, embed_dims, encoder_dims, latent_dims, decoder_dims,
-                 device):
+                 prior_dims, device):
         super(ListCVAE, self).__init__()
         self.device = device
 
@@ -53,8 +53,19 @@ class ListCVAE(nn.Module):
         )
 
         # Prior
-        self.prior_mu = nn.Linear(self.embed_dims + self.response_dims, self.latent_dims)
-        self.prior_log_variance = nn.Linear(self.embed_dims + self.response_dims, self.latent_dims)
+        layers_block = []
+        input_dims = self.embed_dims + self.response_dims
+
+        for out_dims in prior_dims:
+            layers_block.extend(self.prior_block(input_dims, out_dims))
+            input_dims = out_dims
+
+        self.prior_layers = nn.Sequential(
+            *layers_block
+        )
+
+        self.prior_mu = nn.Linear(input_dims, self.latent_dims)
+        self.prior_log_variance = nn.Linear(input_dims, self.latent_dims)
 
     @staticmethod
     def encoder_block(in_feat, out_feat, normalize=False, dropout=None):
@@ -71,6 +82,19 @@ class ListCVAE(nn.Module):
 
     @staticmethod
     def decoder_block(in_feat, out_feat, normalize=False, dropout=None):
+        block = [nn.Linear(in_feat, out_feat)]
+
+        if normalize:
+            block.append(nn.BatchNorm1d(num_features=out_feat))
+        if dropout:
+            block.append(nn.Dropout(dropout))
+
+        block.append(nn.LeakyReLU(0.02, inplace=True))
+
+        return block
+
+    @staticmethod
+    def prior_block(in_feat, out_feat, normalize=False, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
         if normalize:
@@ -106,8 +130,8 @@ class ListCVAE(nn.Module):
         std = torch.exp(0.5 * log_variance)
         eps = torch.randn(std.shape[0], self.slate_size, std.shape[1], device=self.device) # Batch_size, slate_size, latent_dims
 
-        std = std.unsqueeze(dim=1)
-        mu = mu.unsqueeze(dim=1)
+        std = std.repeat(1, self.slate_size).view(std.shape[0], self.slate_size, std.shape[1])
+        mu = mu.repeat(1, self.slate_size).view(mu.shape[0], self.slate_size, mu.shape[1])
 
         return mu + eps * std
 
@@ -136,13 +160,17 @@ class ListCVAE(nn.Module):
 
         conditioned_info = torch.cat((user_embedding, response_vector), dim=1)
 
+        # Encoder
         mu, log_variance = self.encode(slate_inputs, conditioned_info)
-        z = self.reparameterize(mu, log_variance)
 
+        # Decoder
+        z = self.reparameterize(mu, log_variance)
         decoder_out = self.decode(z, conditioned_info)
 
-        prior_mu = self.prior_mu(conditioned_info)
-        prior_log_variance = self.prior_log_variance(conditioned_info)
+        # Prior
+        prior_out = self.prior_layers(conditioned_info)
+        prior_mu = self.prior_mu(prior_out)
+        prior_log_variance = self.prior_log_variance(prior_out)
 
         return decoder_out, prior_mu, prior_log_variance
 
@@ -154,8 +182,10 @@ class ListCVAE(nn.Module):
 
         conditioned_info = torch.cat((user_embedding, response_vector), dim=1)
 
-        prior_mu = self.prior_mu(conditioned_info)
-        prior_log_variance = self.prior_log_variance(conditioned_info)
+        # Prior
+        prior_out = self.prior_layers(conditioned_info)
+        prior_mu = self.prior_mu(prior_out)
+        prior_log_variance = self.prior_log_variance(prior_out)
 
         z = self.reparameterize(prior_mu, prior_log_variance)
 

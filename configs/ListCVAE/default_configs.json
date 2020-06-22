@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -15,23 +15,25 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
-  "slate_size": 6,
-  "negative_sampling_for_slates": [0,1,2,3,4,5,6],
+  "slate_size": 4,
+  "negative_sampling_for_slates": [0],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 50,
-  "train_batch_size": 16,
+  "train_batch_size": 6,
   "test_batch_size": 16,
   "embed_dims": 16,
-  "latent_dims": 16,
+  "latent_dims": 3,
   "lr": 0.0001,
   "beta_1": 0.5,
   "beta_2": 0.99,
   "weight_decay": 0,
+  "beta_weight": 1,
+  "prior_dims": [32],
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [32, 64],
 
-  "__comment": "Discriminator Parameters",
+  "__comment": "Decoder Parameters",
   "decoder_dims": [32, 64]
 }
