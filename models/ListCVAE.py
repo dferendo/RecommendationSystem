@@ -48,10 +48,9 @@ class ListCVAE(nn.Module):
             input_dims = out_dims
 
         self.decoder_layers = nn.Sequential(
-            *layers_block
+            *layers_block,
+            nn.Linear(input_dims, self.embed_dims)
         )
-
-        self.decoder_output = nn.Linear(input_dims, self.embed_dims)
 
         # Prior
         self.prior_mu = nn.Linear(self.embed_dims + self.response_dims, self.latent_dims)
@@ -107,8 +106,8 @@ class ListCVAE(nn.Module):
         std = torch.exp(0.5 * log_variance)
         eps = torch.randn(std.shape[0], self.slate_size, std.shape[1], device=self.device) # Batch_size, slate_size, latent_dims
 
-        mu = mu.unsqueeze(dim=1)
         std = std.unsqueeze(dim=1)
+        mu = mu.unsqueeze(dim=1)
 
         return mu + eps * std
 
@@ -121,7 +120,6 @@ class ListCVAE(nn.Module):
 
         # Linear layer is applied to the last dimension (ie, for all items in the slate, apply the Linear layer)
         out = self.decoder_layers(decoder_input)
-        out = self.decoder_output(out)
 
         all_movies = torch.arange(self.num_of_movies, device=self.device)
         all_movies_embedding = self.embedding_movies(all_movies).T

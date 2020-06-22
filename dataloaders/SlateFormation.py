@@ -39,13 +39,13 @@ class SlateFormationDataLoader(Dataset):
         padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)
         padded_interactions[0:len(user_interactions)] = user_interactions
 
-        slate_values = np.array(self.slate_vector_matrix[idx])
-        slate_one_hot = np.zeros((len(self.slate_vector_matrix[idx]), self.number_of_movies))
-        slate_one_hot[np.arange(slate_values.size), slate_values] = 1
+        # slate_values = np.array(self.slate_vector_matrix[idx])
+        # slate_one_hot = np.zeros((len(self.slate_vector_matrix[idx]), self.number_of_movies))
+        # slate_one_hot[np.arange(slate_values.size), slate_values] = 1
+        #
+        # slate_one_hot = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
 
-        slate_one_hot = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
-
-        return self.user_ids[idx], padded_interactions, len(user_interactions), slate_one_hot, self.response_vector_matrix[idx]
+        return self.user_ids[idx], padded_interactions, len(user_interactions), self.slate_vector_matrix[idx], self.response_vector_matrix[idx]
 
 
 class SlateFormationTestDataLoader(Dataset):

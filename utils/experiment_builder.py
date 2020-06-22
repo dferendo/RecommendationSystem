@@ -134,6 +134,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
                 loss = self.train_iteration(idx, values_to_unpack)
 
                 loss.backward()
+                # plot_grad_flow(self.model.named_parameters())
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
@@ -153,7 +154,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
                     predicted_slate = self.eval_iteration(values_to_unpack)
 
-                    ground_truth_slate = values_to_unpack[2].cpu()
+                    ground_truth_slate = values_to_unpack[3].cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
