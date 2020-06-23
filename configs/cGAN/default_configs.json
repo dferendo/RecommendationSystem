@@ -19,7 +19,7 @@
   "negative_sampling_for_slates": [0],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 100,
+  "num_of_epochs": 150,
   "train_batch_size": 64,
   "test_batch_size": 64,
   "embed_dims": 8,
