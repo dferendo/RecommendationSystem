@@ -11,8 +11,9 @@ class SlateFormationDataLoader(Dataset):
         self.user_ids = None
         self.slate_vector_matrix = None
         self.response_vector_matrix = None
-        self.user_interactions_values = None
         self.longest_user_interaction = 0
+        self.padded_interactions = None
+        self.interactions = None
 
         self.convert_to_vector_form()
 
@@ -25,20 +26,24 @@ class SlateFormationDataLoader(Dataset):
         self.response_vector_matrix = np.stack(self.slate_formations['Response Vector'].str.split('|').values)
         self.response_vector_matrix = self.response_vector_matrix.astype(np.int32)
 
-        self.user_interactions_values = self.slate_formations['User Interactions'].str.split('|').values
-
         # Needed for padding so that every user has the same amount of interactions
-        self.longest_user_interaction = len(max(self.user_interactions_values, key=len))
+        temp_user_interactions = self.slate_formations['User Interactions'].str.split('|').values
+        self.longest_user_interaction = len(max(temp_user_interactions, key=len))
+
+        self.padded_interactions = np.full((len(temp_user_interactions), self.longest_user_interaction), self.number_of_movies)
+        self.interactions = np.zeros((len(temp_user_interactions), 1))
+
+        # The padding idx is the *self.number_of_movies*
+        for idx, interactions in enumerate(temp_user_interactions):
+            user_interactions = np.array(interactions).astype(np.int32)
+
+            self.padded_interactions[idx, 0:len(user_interactions)] = user_interactions
+            self.interactions[idx] = len(interactions)
 
     def __len__(self):
         return len(self.slate_formations)
 
     def __getitem__(self, idx):
-        user_interactions = np.array(self.user_interactions_values[idx]).astype(np.int32)
-
-        # The padding idx is the *self.number_of_movies*
-        padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)
-        padded_interactions[0:len(user_interactions)] = user_interactions
         slates = self.slate_vector_matrix[idx]
 
         if self.one_hot_slates:
@@ -48,7 +53,7 @@ class SlateFormationDataLoader(Dataset):
 
             slates = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
 
-        return self.user_ids[idx], padded_interactions, len(user_interactions), slates, self.response_vector_matrix[idx]
+        return self.user_ids[idx], self.padded_interactions[idx], self.interactions[idx], slates, self.response_vector_matrix[idx]
 
 
 class SlateFormationTestDataLoader(Dataset):

@@ -1,12 +1,13 @@
-from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset, load_movie_categories
-from utils.reset_seed import set_seeds
 import numpy as np
 import os
 import time
 import pandas as pd
 import tqdm
 import sys
+from dataloaders.SlateFormation import SlateFormationDataLoader, SlateFormationTestDataLoader
+from torch.utils.data import DataLoader
+import json
 
 
 def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates,
@@ -130,3 +131,58 @@ def generate_test_slate_formation(row_interactions, train_row_interactions, user
     print("Time taken in seconds: ", time.process_time() - start)
 
     return df
+
+
+def get_data_loaders(configs):
+    slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
+                                                         '-'.join(
+                                                             str(e) for e in configs['negative_sampling_for_slates']),
+                                                         configs['is_training'])
+    slate_formation_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
+
+    slate_formation_file_name = 'sf_{}_{}_{}_test.csv'.format(configs['slate_size'],
+                                                              '-'.join(str(e) for e in
+                                                                       configs['negative_sampling_for_slates']),
+                                                              configs['is_training'])
+
+    slate_formation_test_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
+
+    slate_formation_file_name = 'sf_{}_{}_{}_configs.csv'.format(configs['slate_size'],
+                                                                 '-'.join(str(e) for e in
+                                                                          configs['negative_sampling_for_slates']),
+                                                                 configs['is_training'])
+    slate_formation_file_location_configs = os.path.join(configs['data_location'], slate_formation_file_name)
+
+    # Check if we have the slates for training
+    if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location):
+        slate_formation = pd.read_csv(slate_formation_file_location)
+        test_slate_formation = pd.read_csv(slate_formation_test_file_location)
+
+        with open(slate_formation_file_location_configs, 'r') as fp:
+            dataset_configs = json.load(fp)
+    else:
+        df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
+
+        slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
+                                                   configs['negative_sampling_for_slates'],
+                                                   slate_formation_file_location)
+
+        test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
+                                                             slate_formation_test_file_location)
+        dataset_configs = {'number_of_users': len(df_train_matrix.index),
+                           'number_of_movies': len(df_train_matrix.columns)}
+
+        with open(slate_formation_file_location_configs, 'w') as fp:
+            json.dump(dataset_configs, fp)
+
+    print(f'Number of users: {dataset_configs["number_of_users"]}, Number of movies: {dataset_configs["number_of_movies"]}')
+
+    train_dataset = SlateFormationDataLoader(slate_formation, dataset_configs['number_of_movies'], one_hot_slates=True)
+    train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=0,
+                              drop_last=True)
+
+    test_dataset = SlateFormationTestDataLoader(test_slate_formation, dataset_configs['number_of_movies'])
+    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=False, num_workers=4,
+                             drop_last=False)
+
+    return train_loader, test_loader, dataset_configs

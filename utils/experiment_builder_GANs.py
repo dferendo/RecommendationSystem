@@ -148,24 +148,25 @@ class ExperimentBuilderGAN(nn.Module, ABC):
     def run_training_epoch(self):
         self.generator.train()
         self.discriminator.train()
-        all_gen_losses = []
-        all_dis_losses = []
+        # all_gen_losses = []
+        # all_dis_losses = []
 
-        with tqdm.tqdm(total=len(self.train_loader) // self.CRITIC_ITERS, file=sys.stdout) as pbar:
+        # with tqdm.tqdm(total=len(self.train_loader) // self.CRITIC_ITERS, file=sys.stdout) as pbar:
+        with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
             for idx, values_to_unpack in enumerate(self.train_loader):
                 self.generator.zero_grad()
                 self.discriminator.zero_grad()
 
-                loss_gen, loss_dis = self.train_iteration(idx, values_to_unpack)
+                # loss_gen, loss_dis = self.train_iteration(idx, values_to_unpack)
 
-                if loss_gen is not None:
-                    all_gen_losses.append(float(loss_gen))
-                    all_dis_losses.append(float(loss_dis))
+                # if loss_gen is not None:
+                    # all_gen_losses.append(float(loss_gen))
+                    # all_dis_losses.append(float(loss_dis))
 
-                    pbar.update(1)
-                    pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
-
-        return np.mean(all_gen_losses), np.mean(all_dis_losses)
+                pbar.update(1)
+                pbar.set_description(f"loss_Gen: {0:.4f}, loss_Dis: {0:.4f}")
+        return 0, 0
+        # return np.mean(all_gen_losses), np.mean(all_dis_losses)
 
     def run_evaluation_epoch(self, epoch_idx):
         self.generator.eval()

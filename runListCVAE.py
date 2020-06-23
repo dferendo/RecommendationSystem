@@ -1,7 +1,7 @@
 from utils.arg_parser import extract_args_from_json
 from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
-from utils.SlateFormation import generate_slate_formation, generate_test_slate_formation
+from utils.slate_formation import generate_slate_formation, generate_test_slate_formation
 from dataloaders.SlateFormation import SlateFormationDataLoader, SlateFormationTestDataLoader
 from models.ListCVAE import ListCVAE
 

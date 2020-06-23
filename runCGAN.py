@@ -1,15 +1,13 @@
 from utils.arg_parser import extract_args_from_json
-from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
-from utils.SlateFormation import generate_slate_formation, generate_test_slate_formation
 from utils.experiment_builder_GANs import ExperimentBuilderGAN
-from dataloaders.SlateFormation import SlateFormationDataLoader, SlateFormationTestDataLoader
 from models.CGAN import Generator, Discriminator
+from utils.slate_formation import get_data_loaders
 
 import torch
 import os
 import pandas as pd
-from torch.utils.data import DataLoader
+
 import torch.nn.functional as F
 
 
@@ -157,49 +155,12 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         return g_loss
 
 
-def get_data_loaders(configs):
-    slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
-                                                         '-'.join(str(e) for e in configs['negative_sampling_for_slates']),
-                                                         configs['is_training'])
-    slate_formation_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
-
-    slate_formation_file_name = 'sf_{}_{}_{}_test.csv'.format(configs['slate_size'],
-                                                              '-'.join(str(e) for e in configs['negative_sampling_for_slates']),
-                                                              configs['is_training'])
-
-    slate_formation_test_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
-
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
-
-    # Check if we have the slates for training
-    if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location):
-        slate_formation = pd.read_csv(slate_formation_file_location)
-        test_slate_formation = pd.read_csv(slate_formation_test_file_location)
-    else:
-        slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
-                                                   configs['negative_sampling_for_slates'],
-                                                   slate_formation_file_location)
-
-        test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
-                                                             slate_formation_test_file_location)
-
-    train_dataset = SlateFormationDataLoader(slate_formation, len(df_train_matrix.columns), one_hot_slates=True)
-    train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=False, num_workers=4,
-                              drop_last=True)
-
-    test_dataset = SlateFormationTestDataLoader(test_slate_formation, len(df_train_matrix.columns))
-    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=False, num_workers=4,
-                             drop_last=False)
-
-    return train_loader, test_loader
-
-
 def experiments_run():
     configs = extract_args_from_json()
     print(configs)
     set_seeds(configs['seed'])
 
-    train_loader, test_loader = get_data_loaders(configs)
+    train_loader, test_loader, data_configs = get_data_loaders(configs)
 
     print('number of movies: ', train_loader.dataset.number_of_movies)
 
