@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -16,24 +16,26 @@
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
-  "negative_sampling_for_slates": [0,1,2,3,4,5,6],
+  "negative_sampling_for_slates": [0],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 100,
-  "train_batch_size": 16,
-  "test_batch_size": 16,
-  "embed_dims": 32,
+  "train_batch_size": 64,
+  "test_batch_size": 64,
+  "embed_dims": 8,
 
   "__comment": "Generator Parameters",
-  "noise_hidden_dims": 32,
-  "hidden_layers_dims_gen": [32, 64],
+  "noise_hidden_dims": 8,
+  "hidden_layers_dims_gen": [8, 16],
   "learning_rate_gen": 0.00005,
   "gen_beta_1": 0.5,
   "gen_beta_2": 0.99,
+  "gen_dropout": 0,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [32, 64, 128],
+  "hidden_layers_dims_dis": [8, 16],
   "learning_rate_dis": 0.00005,
   "dis_beta_1": 0.5,
-  "dis_beta_2": 0.99
+  "dis_beta_2": 0.99,
+  "dis_dropout": 0.5
 }
