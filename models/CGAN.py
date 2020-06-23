@@ -149,8 +149,8 @@ class Discriminator(nn.Module):
 
         out = self.layer_dict['output_layer'](out)
 
-        # return out, hidden_layers[-2]
-        return out, None
+        return out, hidden_layers[-2]
+        # return out, None
 
     def reset_parameters(self):
         """

@@ -26,17 +26,17 @@
   "embed_dims": 16,
 
   "__comment": "Generator Parameters",
-  "noise_hidden_dims": 16,
-  "hidden_layers_dims_gen": [8, 16, 32],
-  "learning_rate_gen": 0.00005,
+  "noise_hidden_dims": 32,
+  "hidden_layers_dims_gen": [16, 32, 64],
+  "learning_rate_gen": 0.0001,
   "gen_beta_1": 0.5,
   "gen_beta_2": 0.99,
   "gen_dropout": 0,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [8, 16, 32],
-  "learning_rate_dis": 0.00005,
+  "hidden_layers_dims_dis": [16, 32, 64],
+  "learning_rate_dis": 0.0001,
   "dis_beta_1": 0.5,
   "dis_beta_2": 0.99,
-  "dis_dropout": 0.5
+  "dis_dropout": 0.3
 }

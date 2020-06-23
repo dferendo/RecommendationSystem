@@ -136,7 +136,7 @@ def generate_test_slate_formation(row_interactions, train_row_interactions, user
     return df
 
 
-def get_data_loaders(configs):
+def get_data_loaders(configs, one_hot):
     slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
                                                          '-'.join(
                                                              str(e) for e in configs['negative_sampling_for_slates']),
@@ -180,7 +180,7 @@ def get_data_loaders(configs):
 
     print(f'Number of users: {dataset_configs["number_of_users"]}, Number of movies: {dataset_configs["number_of_movies"]}')
 
-    train_dataset = SlateFormationDataLoader(slate_formation, dataset_configs['number_of_movies'], one_hot_slates=True)
+    train_dataset = SlateFormationDataLoader(slate_formation, dataset_configs['number_of_movies'], one_hot_slates=one_hot)
     train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 

@@ -1,14 +1,9 @@
 from utils.arg_parser import extract_args_from_json
-from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
-from utils.slate_formation import generate_slate_formation, generate_test_slate_formation
-from dataloaders.SlateFormation import SlateFormationDataLoader, SlateFormationTestDataLoader
 from models.ListCVAE import ListCVAE
+from utils.slate_formation import get_data_loaders
 
 import torch
-import os
-import pandas as pd
-from torch.utils.data import DataLoader
 from utils.experiment_builder import ExperimentBuilderNN
 
 
@@ -43,7 +38,7 @@ class ListCVAEExperimentBuilder(ExperimentBuilderNN):
     def eval_iteration(self, values_to_unpack):
         user_interactions_with_padding = values_to_unpack[1].to(self.device)
         number_of_interactions_per_user = values_to_unpack[2].to(self.device)
-        response_vector = torch.full((self.configs['test_batch_size'], self.configs['slate_size']), 1,
+        response_vector = torch.full((user_interactions_with_padding.shape[0], self.configs['slate_size']), 1,
                                      device=self.device, dtype=torch.float32)
 
         slates = self.model.inference(user_interactions_with_padding, number_of_interactions_per_user, response_vector)
@@ -51,51 +46,12 @@ class ListCVAEExperimentBuilder(ExperimentBuilderNN):
         return slates
 
 
-def get_data_loaders(configs):
-    slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
-                                                         '-'.join(
-                                                             str(e) for e in configs['negative_sampling_for_slates']),
-                                                         configs['is_training'])
-    slate_formation_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
-
-    slate_formation_file_name = 'sf_{}_{}_{}_test.csv'.format(configs['slate_size'],
-                                                              '-'.join(str(e) for e in
-                                                                       configs['negative_sampling_for_slates']),
-                                                              configs['is_training'])
-
-    slate_formation_test_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
-
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
-
-    # Check if we have the slates for training
-    if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location):
-        slate_formation = pd.read_csv(slate_formation_file_location)
-        test_slate_formation = pd.read_csv(slate_formation_test_file_location)
-    else:
-        slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
-                                                   configs['negative_sampling_for_slates'],
-                                                   slate_formation_file_location)
-
-        test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
-                                                             slate_formation_test_file_location)
-
-    train_dataset = SlateFormationDataLoader(slate_formation, len(df_train_matrix.columns), one_hot_slates=False)
-    train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=False, num_workers=4,
-                              drop_last=True)
-
-    test_dataset = SlateFormationTestDataLoader(test_slate_formation, len(df_train_matrix.columns))
-    test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
-                             drop_last=True)
-
-    return train_loader, test_loader
-
-
 def experiments_run():
     configs = extract_args_from_json()
     print(configs)
     set_seeds(configs['seed'])
 
-    train_loader, test_loader = get_data_loaders(configs)
+    train_loader, test_loader, data_configs = get_data_loaders(configs, False)
     response_vector_dims = 1
 
     device = torch.device("cuda")

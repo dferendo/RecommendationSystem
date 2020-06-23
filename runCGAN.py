@@ -11,34 +11,34 @@ import pandas as pd
 import torch.nn.functional as F
 
 
-# def GDPPLoss(phiFake, phiReal, backward=True):
-#     def compute_diversity(phi):
-#         phi = F.normalize(phi, p=2, dim=1)
-#         SB = torch.mm(phi, phi.t())
-#         eigVals, eigVecs = torch.symeig(SB, eigenvectors=True)
-#         return eigVals, eigVecs
-#
-#     def normalize_min_max(eigVals):
-#         minV, maxV = torch.min(eigVals), torch.max(eigVals)
-#         if abs(minV - maxV) < 1e-10:
-#             return eigVals
-#         return (eigVals - minV) / (maxV - minV)
-#
-#     fakeEigVals, fakeEigVecs = compute_diversity(phiFake)
-#     realEigVals, realEigVecs = compute_diversity(phiReal)
-#
-#     # Scaling factor to make the two losses operating in comparable ranges.
-#     magnitudeLoss = 0.0001 * F.mse_loss(target=realEigVals, input=fakeEigVals)
-#     structureLoss = -torch.sum(torch.mul(fakeEigVecs, realEigVecs), 0)
-#     normalizedRealEigVals = normalize_min_max(realEigVals)
-#     weightedStructureLoss = torch.sum(
-#         torch.mul(normalizedRealEigVals, structureLoss))
-#     gdppLoss = magnitudeLoss + weightedStructureLoss
-#
-#     if backward:
-#         gdppLoss.backward(retain_graph=True)
-#
-#     return gdppLoss.item()
+def GDPPLoss(phiFake, phiReal, backward=True):
+    def compute_diversity(phi):
+        phi = F.normalize(phi, p=2, dim=1)
+        SB = torch.mm(phi, phi.t())
+        eigVals, eigVecs = torch.symeig(SB, eigenvectors=True)
+        return eigVals, eigVecs
+
+    def normalize_min_max(eigVals):
+        minV, maxV = torch.min(eigVals), torch.max(eigVals)
+        if abs(minV - maxV) < 1e-10:
+            return eigVals
+        return (eigVals - minV) / (maxV - minV)
+
+    fakeEigVals, fakeEigVecs = compute_diversity(phiFake)
+    realEigVals, realEigVecs = compute_diversity(phiReal)
+
+    # Scaling factor to make the two losses operating in comparable ranges.
+    magnitudeLoss = 0.0001 * F.mse_loss(target=realEigVals, input=fakeEigVals)
+    structureLoss = -torch.sum(torch.mul(fakeEigVecs, realEigVecs), 0)
+    normalizedRealEigVals = normalize_min_max(realEigVals)
+    weightedStructureLoss = torch.sum(
+        torch.mul(normalizedRealEigVals, structureLoss))
+    gdppLoss = magnitudeLoss + weightedStructureLoss
+
+    if backward:
+        gdppLoss.backward(retain_graph=True)
+
+    return gdppLoss.item()
 #
 # def gradient_penalty():
 #     # Calculate Gradient policy
@@ -138,7 +138,7 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
         for p in self.discriminator.parameters():
             p.data.clamp_(-self.weight_clip, self.weight_clip)
 
-        return d_loss
+        return d_loss.item()
 
     def update_generator(self, real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         self.optimizer_gen.zero_grad()
@@ -147,12 +147,17 @@ class FullyConnectedGANExperimentBuilder(ExperimentBuilderGAN):
                             dtype=torch.float32, device=self.device)
 
         fake_slates = self.generator(user_interactions_with_padding, number_of_interactions_per_user, response_vector, noise)
-        fake_loss, _ = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
+        fake_loss, phi_fake = self.discriminator(fake_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
         g_loss = -1 * fake_loss.mean()
-        g_loss.backward()
+        g_loss.backward(retain_graph=True)
+
+        _, phi_real = self.discriminator(real_slates, user_interactions_with_padding, number_of_interactions_per_user, response_vector)
+
+        gdpp_loss = GDPPLoss(phi_real, phi_fake)
+
         self.optimizer_gen.step()
 
-        return g_loss
+        return float(g_loss) + float(gdpp_loss)
 
 
 def experiments_run():
@@ -160,7 +165,7 @@ def experiments_run():
     print(configs)
     set_seeds(configs['seed'])
 
-    train_loader, test_loader, data_configs = get_data_loaders(configs)
+    train_loader, test_loader, data_configs = get_data_loaders(configs, True)
 
     print('number of movies: ', train_loader.dataset.number_of_movies)
 
