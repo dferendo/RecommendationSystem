@@ -68,11 +68,9 @@ class ListCVAE(nn.Module):
         self.prior_log_variance = nn.Linear(input_dims, self.latent_dims)
 
     @staticmethod
-    def encoder_block(in_feat, out_feat, normalize=False, dropout=None):
+    def encoder_block(in_feat, out_feat, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
-        if normalize:
-            block.append(nn.BatchNorm1d(num_features=out_feat))
         if dropout:
             block.append(nn.Dropout(dropout))
 
@@ -81,11 +79,9 @@ class ListCVAE(nn.Module):
         return block
 
     @staticmethod
-    def decoder_block(in_feat, out_feat, normalize=False, dropout=None):
+    def decoder_block(in_feat, out_feat, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
-        if normalize:
-            block.append(nn.BatchNorm1d(num_features=out_feat))
         if dropout:
             block.append(nn.Dropout(dropout))
 
@@ -94,11 +90,9 @@ class ListCVAE(nn.Module):
         return block
 
     @staticmethod
-    def prior_block(in_feat, out_feat, normalize=False, dropout=None):
+    def prior_block(in_feat, out_feat, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
-        if normalize:
-            block.append(nn.BatchNorm1d(num_features=out_feat))
         if dropout:
             block.append(nn.Dropout(dropout))
 

@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
+from utils.storage import save_statistics
 
 import numpy as np
 import os
@@ -40,6 +41,11 @@ class ExperimentBuilderNN(nn.Module, ABC):
 
         if not os.path.exists(self.experiment_saved_models):
             os.mkdir(self.experiment_saved_models)
+
+        self.experiment_logs = os.path.abspath(os.path.join(self.experiment_folder, "result_outputs"))
+
+        if not os.path.exists(self.experiment_logs):
+            os.mkdir(self.experiment_logs)
 
         # Set best models to be at 0 since we are just starting
         self.best_val_model_idx = 0
@@ -172,6 +178,8 @@ class ExperimentBuilderNN(nn.Module, ABC):
         return precision, hr, diversity
 
     def run_experiment(self):
+        total_losses = {"loss": [], "precision": [], "hr": [],
+                        "diversity": [], "curr_epoch": []}
 
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
@@ -199,6 +207,16 @@ class ExperimentBuilderNN(nn.Module, ABC):
             if self.configs['save_model']:
                 self.save_model(model_save_dir=self.experiment_saved_models,
                                 model_save_name="train_model", model_idx=epoch_idx, state=self.state)
+
+            total_losses['loss'].append(average_loss)
+            total_losses['precision'].append(precision_mean)
+            total_losses['hr'].append(hr_mean)
+            total_losses['diversity'].append(diversity)
+            total_losses['curr_epoch'].append(epoch_idx)
+
+            save_statistics(experiment_log_dir=self.experiment_logs, filename='summary.csv',
+                            stats_dict=total_losses, current_epoch=epoch_idx,
+                            continue_from_mode=True if (self.starting_epoch != 0 or epoch_idx > 0) else False)
 
         self.writer.flush()
         self.writer.close()
