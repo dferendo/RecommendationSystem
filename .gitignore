@@ -131,8 +131,7 @@ dmypy.json
 # Idea
 .idea/
 
-dataset/ml-25m
-
+dataset/
 
 saved_models/
 *.out
