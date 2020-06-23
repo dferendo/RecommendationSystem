@@ -11,7 +11,7 @@ import json
 
 
 def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates,
-                             save_location):
+                             save_location, maximum_user_interactions):
     """
     Return the slates. Each slate has a user_id followed by a slate containing
     *slate_size* movie_ids, *slate_size* response vector (whether the user had an interaction or not) and the user
@@ -53,6 +53,9 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
 
                 # The *or None* will return the whole list when we have 0 positive samples
                 all_user_interactions = user_interactions[:-positive_samples_amount or None]
+
+                if len(all_user_interactions) > maximum_user_interactions:
+                    all_user_interactions = all_user_interactions[-maximum_user_interactions:]
 
                 all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
                                                          all_user_interactions))
@@ -165,7 +168,7 @@ def get_data_loaders(configs):
 
         slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
                                                    configs['negative_sampling_for_slates'],
-                                                   slate_formation_file_location)
+                                                   slate_formation_file_location, configs['maximum_past_user_interactions'])
 
         test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
                                                              slate_formation_test_file_location)
@@ -178,7 +181,7 @@ def get_data_loaders(configs):
     print(f'Number of users: {dataset_configs["number_of_users"]}, Number of movies: {dataset_configs["number_of_movies"]}')
 
     train_dataset = SlateFormationDataLoader(slate_formation, dataset_configs['number_of_movies'], one_hot_slates=True)
-    train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=0,
+    train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
                               drop_last=True)
 
     test_dataset = SlateFormationTestDataLoader(test_slate_formation, dataset_configs['number_of_movies'])

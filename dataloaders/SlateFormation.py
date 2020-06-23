@@ -30,8 +30,8 @@ class SlateFormationDataLoader(Dataset):
         temp_user_interactions = self.slate_formations['User Interactions'].str.split('|').values
         self.longest_user_interaction = len(max(temp_user_interactions, key=len))
 
-        self.padded_interactions = np.full((len(temp_user_interactions), self.longest_user_interaction), self.number_of_movies)
-        self.interactions = np.zeros((len(temp_user_interactions), 1))
+        self.padded_interactions = np.full((len(temp_user_interactions), self.longest_user_interaction), self.number_of_movies, dtype=np.int)
+        self.interactions = np.zeros((len(temp_user_interactions),), dtype=np.int)
 
         # The padding idx is the *self.number_of_movies*
         for idx, interactions in enumerate(temp_user_interactions):
