@@ -26,10 +26,13 @@ def experiments_run():
                              shuffle=True, num_workers=4, drop_last=True)
 
     all_movies = np.arange(len(df_train_matrix.columns))
-    model = RandomSlateGeneration(configs['slate_size'], all_movies, configs['test_batch_size'])
 
-    experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), configs)
-    experiment_builder.run_experiment()
+    for slate_size in configs['slate_size']:
+        print(f'Test for {slate_size}')
+        model = RandomSlateGeneration(slate_size, all_movies, configs['test_batch_size'])
+
+        experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), configs)
+        experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':
