@@ -72,47 +72,40 @@ def experiments_run():
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
                              drop_last=False)
 
-    learning_rates = [0.001, 0.005, 0.0001, 0.0005]
-    embed_dims = [8, 16, 32, 64, 128]
-    weight_decay = [0, 0.1, 0.01, 0.001, 0.0001, 0.00001]
+    model = implicit.bpr.BayesianPersonalizedRanking(learning_rate=configs['lr'], regularization=configs['weight_decay'], iterations=50,
+                                                     factors=configs['embed_dims'])
 
-    for lr in learning_rates:
-        for ed in embed_dims:
-            for wd in weight_decay:
-                print(f'lr {lr}, ed {ed}, wd {wd}')
+    a = sparse.coo_matrix(df_train_matrix.to_numpy().T)
+    temp = sparse.csr_matrix(df_train_matrix.to_numpy())
 
-                model = implicit.bpr.BayesianPersonalizedRanking(learning_rate=lr, regularization=wd, iterations=50,
-                                                                 factors=ed)
+    # train the model on a sparse matrix of item/user/confidence weights
+    model.fit(a)
 
-                a = sparse.coo_matrix(df_train_matrix.to_numpy().T)
-                temp = sparse.csr_matrix(df_train_matrix.to_numpy())
+    for slate_size in configs['slate_size']:
+        print(f'Test for {slate_size}')
+        recommendations = model.recommend_all(temp, N=slate_size)
 
-                # train the model on a sparse matrix of item/user/confidence weights
-                model.fit(a)
+        predicted_slates = []
+        ground_truth_slates = []
 
-                recommendations = model.recommend_all(temp, N=configs['slate_size'])
+        for values in test_loader:
+            for value in values[0]:
+                predicted_slates.append(recommendations[int(value)])
 
-                predicted_slates = []
-                ground_truth_slates = []
+            ground_truth_slate = values[1].cpu()
+            ground_truth_indexes = np.nonzero(ground_truth_slate)
+            grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
+                                            np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
 
-                for values in test_loader:
-                    for value in values[0]:
-                        predicted_slates.append(recommendations[int(value)])
+            ground_truth_slates.extend(grouped_ground_truth)
 
-                    ground_truth_slate = values[1].cpu()
-                    ground_truth_indexes = np.nonzero(ground_truth_slate)
-                    grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
-                                                    np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
+        predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
 
-                    ground_truth_slates.extend(grouped_ground_truth)
+        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+        diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
 
-                predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
-
-                precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
-                diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
-
-                print(precision, hr)
-                print(diversity)
+        print(precision, hr)
+        print(diversity)
 
 
 if __name__ == '__main__':
