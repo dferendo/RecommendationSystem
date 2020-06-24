@@ -16,8 +16,8 @@
   "maximum_past_user_interactions": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
-  "slate_size": 6,
-  "negative_sampling_for_slates": [0, 1, 2, 3],
+  "slate_size": 3,
+  "negative_sampling_for_slates": [0],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 150,

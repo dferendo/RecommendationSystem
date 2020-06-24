@@ -71,11 +71,23 @@ class SlateFormationTestDataLoader(Dataset):
 
     def convert_to_vector_form(self):
         self.user_ids = np.stack(self.slate_formations['User Id'].values)
-        self.user_interactions_values = self.slate_formations['User Condition'].str.split('|').values
         self.ground_truth = self.slate_formations['Ground Truth'].str.split('|').values
 
         # Needed for padding so that every user has the same amount of interactions
-        self.longest_user_interaction = len(max(self.user_interactions_values, key=len))
+        temp_user_interactions = self.slate_formations['User Condition'].str.split('|').values
+        self.longest_user_interaction = len(max(temp_user_interactions, key=len))
+
+        self.padded_interactions = np.full((len(temp_user_interactions), self.longest_user_interaction),
+                                           self.number_of_movies, dtype=np.int)
+        self.interactions = np.zeros((len(temp_user_interactions),), dtype=np.int)
+
+        # The padding idx is the *self.number_of_movies*
+        for idx, interactions in enumerate(temp_user_interactions):
+            user_interactions = np.array(interactions).astype(np.int32)
+
+            self.padded_interactions[idx, 0:len(user_interactions)] = user_interactions
+            self.interactions[idx] = len(interactions)
+
 
     def __len__(self):
         return self.user_ids.shape[0]

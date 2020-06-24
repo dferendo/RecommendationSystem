@@ -1,0 +1,1 @@
+{"batch_size": 20, "z_dim": 50, "slate_size": 3, "n_iter": 50, "learning_rate": 5e-05, "users": 4897, "movies": 2019, "hidden_layer": 40, "embedding_dim": 5}
