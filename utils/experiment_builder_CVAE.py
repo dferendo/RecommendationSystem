@@ -131,6 +131,11 @@ class ExperimentBuilderCVAE(nn.Module):
         if not os.path.exists(self.experiment_logs):
             os.mkdir(self.experiment_logs)
 
+        self.predicted_slates = os.path.abspath(os.path.join(self.experiment_folder, "predicted_slate"))
+
+        if not os.path.exists(self.predicted_slates):
+            os.mkdir(self.predicted_slates)
+
         # Set best models to be at 0 since we are just starting
         self.best_val_model_idx = 0
         self.best_val_model_precision = 0.
@@ -168,21 +173,9 @@ class ExperimentBuilderCVAE(nn.Module):
 
         entropy_loss = self.criterion(recon_slates, slates)
 
-        def kl_divergence(Q_mean, Q_log_var, P_mean, P_log_var):
-            # noinspection PyTypeChecker
-            P_var_inverse = 1 / torch.exp(P_log_var)
-            var_ratio_term = torch.exp(Q_log_var) * P_var_inverse
+        mean_term = ((mu - prior_mu) ** 2) / prior_log_variance.exp()
 
-            N_mean = Q_mean - P_mean
-            mean_term = N_mean.pow(2) * P_var_inverse
-
-            kl = 0.5 * torch.sum(P_log_var - 1 - Q_log_var + var_ratio_term + mean_term)
-
-            return kl
-
-        KL = kl_divergence(mu, log_variance, prior_mu, prior_log_variance)
-
-        print(entropy_loss)
+        KL = 0.5 * torch.sum(prior_log_variance - log_variance + (log_variance.exp() / prior_log_variance.exp()) + mean_term - 1)
 
         return (KL * self.configs['beta_weight']) + entropy_loss
 
@@ -202,11 +195,10 @@ class ExperimentBuilderCVAE(nn.Module):
                 decoder_out, mu, log_variance, prior_mu, prior_log_variance = self.model(slates, padded_interactions,
                                                                                           interactions_length, response_vector)
 
-
                 loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance)
 
                 loss.backward()
-                plot_grad_flow(self.model.named_parameters())
+                # plot_grad_flow(self.model.named_parameters())
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
@@ -214,11 +206,11 @@ class ExperimentBuilderCVAE(nn.Module):
                 pbar.update(1)
                 pbar.set_description(f"loss: {float(loss):.4f}")
 
-        plt.show()
+        # plt.show()
 
         return np.mean(all_losses)
 
-    def run_evaluation_epoch(self):
+    def run_evaluation_epoch(self, epoch_idx):
         self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
@@ -226,7 +218,6 @@ class ExperimentBuilderCVAE(nn.Module):
         with torch.no_grad():
             with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
                 for idx, (user_ids, padded_interactions, interaction_length, ground_truth) in enumerate(self.evaluation_loader):
-
                     padded_interactions = padded_interactions.to(self.device)
                     interaction_length = interaction_length.to(self.device)
                     response_vector = torch.full((padded_interactions.shape[0], self.configs['slate_size']),
@@ -242,11 +233,19 @@ class ExperimentBuilderCVAE(nn.Module):
                     predicted_slates.append(model_slates)
                     ground_truth_slates.extend(grouped_ground_truth)
 
+                    pbar_val.update(1)
+
         predicted_slates = torch.cat(predicted_slates, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
         precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+
+        path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
+
+        with open(path_to_save, 'w') as f:
+            for item in predicted_slates:
+                f.write(f'{item}\n')
 
         return precision, hr, diversity
 
@@ -257,7 +256,7 @@ class ExperimentBuilderCVAE(nn.Module):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
             average_loss = self.run_training_epoch()
-            precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
+            precision_mean, hr_mean, diversity = self.run_evaluation_epoch(epoch_idx)
 
             if precision_mean > self.best_val_model_precision:
                 self.best_val_model_precision = precision_mean

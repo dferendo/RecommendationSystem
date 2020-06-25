@@ -49,7 +49,7 @@ class ListCVAE(nn.Module):
 
         self.decoder_layers = nn.Sequential(
             *layers_block,
-            nn.Linear(input_dims, self.embed_dims)
+            nn.Linear(input_dims, self.embed_dims * self.slate_size)
         )
 
         # Prior
@@ -122,25 +122,19 @@ class ListCVAE(nn.Module):
         :return:
         """
         std = torch.exp(0.5 * log_variance)
-        eps = torch.randn(std.shape[0], self.slate_size, std.shape[1], device=self.device) # Batch_size, slate_size, latent_dims
-
-        std = std.repeat(1, self.slate_size).view(std.shape[0], self.slate_size, std.shape[1])
-        mu = mu.repeat(1, self.slate_size).view(mu.shape[0], self.slate_size, mu.shape[1])
+        eps = torch.rand_like(std, device=self.device)
 
         return mu + eps * std
 
     def decode(self, z, conditioned_info):
-        # BatchSize, Slate_size, Embed_dims
-        conditioned_info = conditioned_info.repeat(1, self.slate_size)\
-            .view(conditioned_info.shape[0], self.slate_size, conditioned_info.shape[1])
+        decoder_input = torch.cat((z, conditioned_info), dim=1)
 
-        decoder_input = torch.cat((z, conditioned_info), dim=2)
-
-        # Linear layer is applied to the last dimension (ie, for all items in the slate, apply the Linear layer)
         out = self.decoder_layers(decoder_input)
 
         all_movies = torch.arange(self.num_of_movies, device=self.device)
         all_movies_embedding = self.embedding_movies(all_movies).T
+
+        out = out.view(out.shape[0], self.slate_size, self.embed_dims)
 
         out = torch.matmul(out, all_movies_embedding)
 
