@@ -6,6 +6,8 @@
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=0-08:00:00
 
+export MKL_SERVICE_FORCE_INTEL=1
+
 export CUDA_HOME=/opt/cuda-9.0.176.1/
 
 export CUDNN_HOME=/opt/cuDNN-7.0/
