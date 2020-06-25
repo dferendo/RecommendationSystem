@@ -71,10 +71,10 @@ class ListCVAE(nn.Module):
     def encoder_block(in_feat, out_feat, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
-        if dropout:
-            block.append(nn.Dropout(dropout))
+        # if dropout:
+        #     block.append(nn.Dropout(dropout))
 
-        block.append(nn.LeakyReLU(0.02, inplace=True))
+        block.append(nn.Tanh())
 
         return block
 
@@ -82,10 +82,10 @@ class ListCVAE(nn.Module):
     def decoder_block(in_feat, out_feat, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
-        if dropout:
-            block.append(nn.Dropout(dropout))
+        # if dropout:
+        #     block.append(nn.Dropout(dropout))
 
-        block.append(nn.LeakyReLU(0.02, inplace=True))
+        block.append(nn.Tanh())
 
         return block
 
@@ -93,10 +93,10 @@ class ListCVAE(nn.Module):
     def prior_block(in_feat, out_feat, dropout=None):
         block = [nn.Linear(in_feat, out_feat)]
 
-        if dropout:
-            block.append(nn.Dropout(dropout))
+        # if dropout:
+        #     block.append(nn.Dropout(dropout))
 
-        block.append(nn.LeakyReLU(0.02, inplace=True))
+        block.append(nn.Tanh())
 
         return block
 
@@ -166,7 +166,7 @@ class ListCVAE(nn.Module):
         prior_mu = self.prior_mu(prior_out)
         prior_log_variance = self.prior_log_variance(prior_out)
 
-        return decoder_out, prior_mu, prior_log_variance
+        return decoder_out, mu, log_variance, prior_mu, prior_log_variance
 
     def inference(self, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         # Personalized

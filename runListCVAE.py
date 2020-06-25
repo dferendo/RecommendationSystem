@@ -5,45 +5,7 @@ from utils.slate_formation import get_data_loaders
 
 import torch
 from utils.experiment_builder import ExperimentBuilderNN
-
-
-class ListCVAEExperimentBuilder(ExperimentBuilderNN):
-    criterion = torch.nn.CrossEntropyLoss()
-
-    def loss_function(self, recon_slates, slates, prior_mu, prior_log_variance):
-        recon_slates = recon_slates.view(recon_slates.shape[0] * recon_slates.shape[1], recon_slates.shape[2])
-        slates = slates.view(slates.shape[0] * slates.shape[1])
-
-        entropy_loss = self.criterion(recon_slates, slates)
-        KLD = -0.5 * torch.sum(1 + prior_log_variance - prior_mu.pow(2) - prior_log_variance.exp())
-
-        return entropy_loss + (KLD * self.configs['beta_weight'])
-
-    def pre_epoch_init_function(self):
-        pass
-
-    def train_iteration(self, idx, values_to_unpack):
-        user_interactions_with_padding = values_to_unpack[1].to(self.device)
-        number_of_interactions_per_user = values_to_unpack[2].to(self.device)
-        real_slates = values_to_unpack[3].long().to(self.device)
-        response_vector = values_to_unpack[4].float().to(self.device)
-
-        decoder_out, mu, log_variance = self.model(real_slates, user_interactions_with_padding,
-                                                   number_of_interactions_per_user, response_vector)
-
-        loss = self.loss_function(decoder_out, real_slates, mu, log_variance)
-
-        return loss
-
-    def eval_iteration(self, values_to_unpack):
-        user_interactions_with_padding = values_to_unpack[1].to(self.device)
-        number_of_interactions_per_user = values_to_unpack[2].to(self.device)
-        response_vector = torch.full((user_interactions_with_padding.shape[0], self.configs['slate_size']), 1,
-                                     device=self.device, dtype=torch.float32)
-
-        slates = self.model.inference(user_interactions_with_padding, number_of_interactions_per_user, response_vector)
-
-        return slates
+from utils.experiment_builder_CVAE import ExperimentBuilderCVAE
 
 
 def experiments_run():
@@ -61,7 +23,7 @@ def experiments_run():
 
     print(model)
 
-    experiment_builder = ListCVAEExperimentBuilder(model, train_loader, test_loader, train_loader.dataset.number_of_movies, configs, print_learnable_parameters=False)
+    experiment_builder = ExperimentBuilderCVAE(model, train_loader, test_loader, data_configs['number_of_movies'], configs)
     experiment_builder.run_experiment()
 
 

@@ -1,16 +1,83 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
-from utils.storage import save_statistics
-
-import numpy as np
 import os
+from utils.storage import save_statistics
 import tqdm
 import sys
-
-from abc import ABC, abstractmethod
+import numpy as np
+from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 import matplotlib.pyplot as plt
+from torch.autograd import Variable
+from graphviz import Digraph
+
+from graphviz import Digraph
+import torch
+from torch.autograd import Variable
+
+
+def make_dot(var, params):
+    """ Produces Graphviz representation of PyTorch autograd graph.
+
+    Blue nodes are trainable Variables (weights, bias).
+    Orange node are saved tensors for the backward pass.
+
+    Args:
+        var: output Variable
+        params: list of (name, Parameters)
+    """
+
+    param_map = {id(v): k for k, v in params}
+
+    node_attr = dict(style='filled',
+                     shape='box',
+                     align='left',
+                     fontsize='12',
+                     ranksep='0.1',
+                     height='0.2')
+
+    dot = Digraph(
+        filename='network',
+        format='pdf',
+        node_attr=node_attr,
+        graph_attr=dict(size="12,12"))
+    seen = set()
+
+    def add_nodes(var):
+        if var not in seen:
+
+            node_id = str(id(var))
+
+            if torch.is_tensor(var):
+                node_label = "saved tensor\n{}".format(tuple(var.size()))
+                dot.node(node_id, node_label, fillcolor='orange')
+
+            elif hasattr(var, 'variable'):
+                variable_name = param_map.get(id(var.variable))
+                variable_size = tuple(var.variable.size())
+                node_name = "{}\n{}".format(variable_name, variable_size)
+                dot.node(node_id, node_name, fillcolor='lightblue')
+
+            else:
+                node_label = type(var).__name__.replace('Backward', '')
+                dot.node(node_id, node_label)
+
+            seen.add(var)
+
+            if hasattr(var, 'next_functions'):
+                for u in var.next_functions:
+                    if u[0] is not None:
+                        dot.edge(str(id(u[0])), str(id(var)))
+                        add_nodes(u[0])
+
+            if hasattr(var, 'saved_tensors'):
+                for t in var.saved_tensors:
+                    dot.edge(str(id(t)), str(id(var)))
+                    add_nodes(t)
+
+    add_nodes(var.grad_fn)
+
+    return dot
 
 
 def plot_grad_flow(named_parameters):
@@ -30,26 +97,25 @@ def plot_grad_flow(named_parameters):
     plt.grid(True)
 
 
-class ExperimentBuilderNN(nn.Module, ABC):
-    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs, print_learnable_parameters=True):
-        super(ExperimentBuilderNN, self).__init__()
+class ExperimentBuilderCVAE(nn.Module):
+    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs):
+        super(ExperimentBuilderCVAE, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
 
         self.model = model
-        self.model.reset_parameters()
 
         self.train_loader = train_loader
         self.evaluation_loader = evaluation_loader
 
+        self.criterion = torch.nn.CrossEntropyLoss()
+
         self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'], weight_decay=configs['weight_decay'])
-
-        if print_learnable_parameters:
-            self.print_parameters(self.named_parameters)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'],
+                                          weight_decay=configs['weight_decay'])
 
         # Saving runs
         self.experiment_folder = "runs/{0}".format(configs['experiment_name'])
@@ -79,17 +145,6 @@ class ExperimentBuilderNN(nn.Module, ABC):
             self.starting_epoch = 0
             self.state = dict()
 
-    @staticmethod
-    def print_parameters(named_parameters):
-        print('System learnable parameters')
-        total_num_parameters = 0
-
-        for name, value in named_parameters():
-            print(name, value.shape)
-            total_num_parameters += np.prod(value.shape)
-
-        print('Total number of parameters', total_num_parameters)
-
     def set_device(self, use_gpu):
         if torch.cuda.device_count() > 1 and use_gpu:
             self.device = torch.cuda.current_device()
@@ -107,55 +162,48 @@ class ExperimentBuilderNN(nn.Module, ABC):
             self.device = torch.device('cpu')  # sets the device to be CPU
             print(self.device)
 
-    def load_model(self, model_save_dir, model_save_name, model_idx):
-        """
-        Load the network parameter state and the best val model idx and best val acc to be compared with the future
-        val accuracies, in order to choose the best val model
-        """
-        state = torch.load(f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
-        self.load_state_dict(state_dict=state['network'])
+    def loss_function(self, recon_slates, slates, mu, log_variance, prior_mu, prior_log_variance):
+        recon_slates = recon_slates.view(recon_slates.shape[0] * recon_slates.shape[1], recon_slates.shape[2])
+        slates = slates.view(slates.shape[0] * slates.shape[1])
 
-        return state['best_val_model_idx'], state['best_val_model_precision'], state
+        entropy_loss = self.criterion(recon_slates, slates)
 
-    def save_model(self, model_save_dir, model_save_name, model_idx, state):
-        state['network'] = self.state_dict()
-        torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
+        def kl_divergence(Q_mean, Q_log_var, P_mean, P_log_var):
+            # noinspection PyTypeChecker
+            P_var_inverse = 1 / torch.exp(P_log_var)
+            var_ratio_term = torch.exp(Q_log_var) * P_var_inverse
 
-    @abstractmethod
-    def pre_epoch_init_function(self):
-        """
-        Declares or data resets (such as negative sampling) that are done pre-epoch training.
-        :return: Nothing
-        """
-        pass
+            N_mean = Q_mean - P_mean
+            mean_term = N_mean.pow(2) * P_var_inverse
 
-    @abstractmethod
-    def train_iteration(self, idx, values_to_unpack):
-        """
+            kl = 0.5 * torch.sum(P_log_var - 1 - Q_log_var + var_ratio_term + mean_term)
 
-        :param idx:
-        :param values_to_unpack: Values obtained from the training data loader
-        :return: The loss
-        """
-        pass
+            return kl
 
-    @abstractmethod
-    def eval_iteration(self, values_to_unpack):
-        """
-        :param values_to_unpack: Values obtained from the training data loader
-        :return:
-        """
-        pass
+        KL = kl_divergence(mu, log_variance, prior_mu, prior_log_variance)
+
+        print(entropy_loss)
+
+        return (KL * self.configs['beta_weight']) + entropy_loss
 
     def run_training_epoch(self):
         self.model.train()
         all_losses = []
 
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
-            for idx, values_to_unpack in enumerate(self.train_loader):
+            for idx, (user_ids, padded_interactions, interactions_length, slates, response_vector) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
 
-                loss = self.train_iteration(idx, values_to_unpack)
+                padded_interactions = padded_interactions.to(self.device)
+                interactions_length = interactions_length.to(self.device)
+                slates = slates.to(self.device).long()
+                response_vector = response_vector.to(self.device).float()
+
+                decoder_out, mu, log_variance, prior_mu, prior_log_variance = self.model(slates, padded_interactions,
+                                                                                          interactions_length, response_vector)
+
+
+                loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance)
 
                 loss.backward()
                 plot_grad_flow(self.model.named_parameters())
@@ -177,17 +225,22 @@ class ExperimentBuilderNN(nn.Module, ABC):
 
         with torch.no_grad():
             with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
-                for idx, values_to_unpack in enumerate(self.evaluation_loader):
-                    predicted_slate = self.eval_iteration(values_to_unpack)
+                for idx, (user_ids, padded_interactions, interaction_length, ground_truth) in enumerate(self.evaluation_loader):
 
-                    ground_truth_slate = values_to_unpack[3].cpu()
+                    padded_interactions = padded_interactions.to(self.device)
+                    interaction_length = interaction_length.to(self.device)
+                    response_vector = torch.full((padded_interactions.shape[0], self.configs['slate_size']),
+                                                 1, device=self.device, dtype=torch.float32)
+
+                    model_slates = self.model.inference(padded_interactions, interaction_length, response_vector)
+
+                    ground_truth_slate = ground_truth.cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
-                    predicted_slates.append(predicted_slate)
-                    ground_truth_slates.extend(grouped_ground_truth)
 
-                    pbar_val.update(1)
+                    predicted_slates.append(model_slates)
+                    ground_truth_slates.extend(grouped_ground_truth)
 
         predicted_slates = torch.cat(predicted_slates, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
@@ -203,8 +256,6 @@ class ExperimentBuilderNN(nn.Module, ABC):
 
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
-            self.pre_epoch_init_function()
-
             average_loss = self.run_training_epoch()
             precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
 
