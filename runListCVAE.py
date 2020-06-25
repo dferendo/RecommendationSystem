@@ -4,7 +4,6 @@ from models.ListCVAE import ListCVAE
 from utils.slate_formation import get_data_loaders
 
 import torch
-from utils.experiment_builder import ExperimentBuilderNN
 from utils.experiment_builder_CVAE import ExperimentBuilderCVAE
 
 
