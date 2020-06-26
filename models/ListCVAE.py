@@ -88,9 +88,9 @@ class ListCVAE(nn.Module):
         if parameters.activation_function == 'leaky':
             block.append(nn.LeakyReLU(0.02))
         elif parameters.activation_function == 'relu':
-            block.append(nn.ReLU)
+            block.append(nn.ReLU())
         else:
-            block.append(nn.Tanh)
+            block.append(nn.Tanh())
 
         return block
 
@@ -106,9 +106,9 @@ class ListCVAE(nn.Module):
         if parameters.activation_function == 'leaky':
             block.append(nn.LeakyReLU(0.02))
         elif parameters.activation_function == 'relu':
-            block.append(nn.ReLU)
+            block.append(nn.ReLU())
         else:
-            block.append(nn.Tanh)
+            block.append(nn.Tanh())
 
         return block
 
@@ -124,9 +124,9 @@ class ListCVAE(nn.Module):
         if parameters.activation_function == 'leaky':
             block.append(nn.LeakyReLU(0.02))
         elif parameters.activation_function == 'relu':
-            block.append(nn.ReLU)
+            block.append(nn.ReLU())
         else:
-            block.append(nn.Tanh)
+            block.append(nn.Tanh())
 
         return block
 
