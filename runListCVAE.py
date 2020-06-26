@@ -1,6 +1,6 @@
 from utils.arg_parser import extract_args_from_json
 from utils.reset_seed import set_seeds
-from models.ListCVAE import ListCVAE
+from models.ListCVAE import ListCVAE, Parameters
 from utils.slate_formation import get_data_loaders
 
 import torch
@@ -17,8 +17,14 @@ def experiments_run():
 
     device = torch.device("cuda")
 
+    encoder_params = Parameters(configs['enc_batch_norm'], configs['enc_dropout'], configs['enc_act'])
+    decoder_params = Parameters(configs['dec_batch_norm'], configs['dec_dropout'], configs['dec_act'])
+    prior_params = Parameters(configs['prior_batch_norm'], configs['prior_dropout'], configs['prior_act'])
+
+
     model = ListCVAE(train_loader.dataset.number_of_movies, configs['slate_size'], response_vector_dims, configs['embed_dims'],
-                     configs['encoder_dims'], configs['latent_dims'], configs['decoder_dims'], configs['prior_dims'], device)
+                     configs['encoder_dims'], configs['latent_dims'], configs['decoder_dims'], configs['prior_dims'], device,
+                     encoder_params, decoder_params, prior_params)
 
     print(model)
 

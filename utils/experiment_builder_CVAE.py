@@ -198,7 +198,7 @@ class ExperimentBuilderCVAE(nn.Module):
                 loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance)
 
                 loss.backward()
-                plot_grad_flow(self.model.named_parameters())
+                # plot_grad_flow(self.model.named_parameters())
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
@@ -206,7 +206,7 @@ class ExperimentBuilderCVAE(nn.Module):
                 pbar.update(1)
                 pbar.set_description(f"loss: {float(loss):.4f}")
 
-        plt.show()
+        # plt.show()
 
         return np.mean(all_losses)
 

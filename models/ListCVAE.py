@@ -4,9 +4,16 @@ from torch import nn
 import numpy as np
 
 
+class Parameters:
+    def __init__(self, batch_norm, dropout, activation_function):
+        self.batch_norm = batch_norm
+        self.dropout = dropout
+        self.activation_function = activation_function
+
+
 class ListCVAE(nn.Module):
     def __init__(self, num_of_movies, slate_size, response_dims, embed_dims, encoder_dims, latent_dims, decoder_dims,
-                 prior_dims, device):
+                 prior_dims, device, encoder_params, decoder_params, prior_params):
         super(ListCVAE, self).__init__()
         self.device = device
 
@@ -30,7 +37,7 @@ class ListCVAE(nn.Module):
         input_dims = (self.embed_dims * self.slate_size) + self.embed_dims + self.response_dims
 
         for out_dims in encoder_dims:
-            layers_block.extend(self.encoder_block(input_dims, out_dims))
+            layers_block.extend(self.encoder_block(input_dims, out_dims, encoder_params))
             input_dims = out_dims
 
         self.encoder_layers = nn.Sequential(
@@ -45,12 +52,13 @@ class ListCVAE(nn.Module):
         input_dims = self.latent_dims + self.embed_dims + self.response_dims
 
         for out_dims in decoder_dims:
-            layers_block.extend(self.decoder_block(input_dims, out_dims))
+            layers_block.extend(self.decoder_block(input_dims, out_dims, decoder_params))
             input_dims = out_dims
 
         self.decoder_layers = nn.Sequential(
             *layers_block,
-            nn.Linear(input_dims, self.embed_dims * self.slate_size)
+            nn.Linear(input_dims, self.embed_dims * self.slate_size),
+            nn.Tanh()
         )
 
         # Prior
@@ -58,7 +66,7 @@ class ListCVAE(nn.Module):
         input_dims = self.embed_dims + self.response_dims
 
         for out_dims in prior_dims:
-            layers_block.extend(self.prior_block(input_dims, out_dims))
+            layers_block.extend(self.prior_block(input_dims, out_dims, prior_params))
             input_dims = out_dims
 
         self.prior_layers = nn.Sequential(
@@ -69,35 +77,56 @@ class ListCVAE(nn.Module):
         self.prior_log_variance = nn.Linear(input_dims, self.latent_dims)
 
     @staticmethod
-    def encoder_block(in_feat, out_feat, dropout=None):
+    def encoder_block(in_feat, out_feat, parameters):
         block = [nn.Linear(in_feat, out_feat)]
 
-        # if dropout:
-        #     block.append(nn.Dropout(dropout))
+        if parameters.batch_norm:
+            block.append(nn.BatchNorm1d(out_feat))
+        if parameters.dropout:
+            block.append(nn.Dropout(parameters.dropout))
 
-        block.append(nn.Tanh())
+        if parameters.activation_function == 'leaky':
+            block.append(nn.LeakyReLU(0.02))
+        elif parameters.activation_function == 'relu':
+            block.append(nn.ReLU)
+        else:
+            block.append(nn.Tanh)
 
         return block
 
     @staticmethod
-    def decoder_block(in_feat, out_feat, dropout=None):
+    def decoder_block(in_feat, out_feat, parameters):
         block = [nn.Linear(in_feat, out_feat)]
 
-        # if dropout:
-        #     block.append(nn.Dropout(dropout))
+        if parameters.batch_norm:
+            block.append(nn.BatchNorm1d(out_feat))
+        if parameters.dropout:
+            block.append(nn.Dropout(parameters.dropout))
 
-        block.append(nn.Tanh())
+        if parameters.activation_function == 'leaky':
+            block.append(nn.LeakyReLU(0.02))
+        elif parameters.activation_function == 'relu':
+            block.append(nn.ReLU)
+        else:
+            block.append(nn.Tanh)
 
         return block
 
     @staticmethod
-    def prior_block(in_feat, out_feat, dropout=None):
+    def prior_block(in_feat, out_feat, parameters):
         block = [nn.Linear(in_feat, out_feat)]
 
-        # if dropout:
-        #     block.append(nn.Dropout(dropout))
+        if parameters.batch_norm:
+            block.append(nn.BatchNorm1d(out_feat))
+        if parameters.dropout:
+            block.append(nn.Dropout(parameters.dropout))
 
-        block.append(nn.Tanh())
+        if parameters.activation_function == 'leaky':
+            block.append(nn.LeakyReLU(0.02))
+        elif parameters.activation_function == 'relu':
+            block.append(nn.ReLU)
+        else:
+            block.append(nn.Tanh)
 
         return block
 
