@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -21,7 +21,7 @@
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 100,
-  "train_batch_size": 64,
+  "train_batch_size": 128,
   "test_batch_size": 5,
   "embed_dims": 32,
   "latent_dims": 16,
