@@ -7,7 +7,7 @@ from utils.storage import save_statistics
 import tqdm
 import sys
 from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # from torch.autograd import Variable
 # from graphviz import Digraph
 
@@ -80,21 +80,21 @@ import torch
 #     return dot
 #
 #
-# def plot_grad_flow(named_parameters):
-#     ave_grads = []
-#     layers = []
-#     for n, p in named_parameters:
-#         if(p.requires_grad) and ("bias" not in n):
-#             layers.append(n)
-#             ave_grads.append(p.grad.abs().mean())
-#     plt.plot(ave_grads, alpha=0.3, color="b")
-#     plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
-#     plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
-#     plt.xlim(xmin=0, xmax=len(ave_grads))
-#     plt.xlabel("Layers")
-#     plt.ylabel("average gradient")
-#     plt.title("Gradient flow")
-#     plt.grid(True)
+def plot_grad_flow(named_parameters):
+    ave_grads = []
+    layers = []
+    for n, p in named_parameters:
+        if(p.requires_grad) and ("bias" not in n):
+            layers.append(n)
+            ave_grads.append(p.grad.abs().mean())
+    plt.plot(ave_grads, alpha=0.3, color="b")
+    plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
+    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
+    plt.xlim(xmin=0, xmax=len(ave_grads))
+    plt.xlabel("Layers")
+    plt.ylabel("average gradient")
+    plt.title("Gradient flow")
+    plt.grid(True)
 
 
 class ExperimentBuilderCVAE(nn.Module):
@@ -198,7 +198,7 @@ class ExperimentBuilderCVAE(nn.Module):
                 loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance)
 
                 loss.backward()
-                # plot_grad_flow(self.model.named_parameters())
+                plot_grad_flow(self.model.named_parameters())
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
@@ -206,7 +206,7 @@ class ExperimentBuilderCVAE(nn.Module):
                 pbar.update(1)
                 pbar.set_description(f"loss: {float(loss):.4f}")
 
-        # plt.show()
+        plt.show()
 
         return np.mean(all_losses)
 

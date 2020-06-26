@@ -1,6 +1,7 @@
 import torch
 import torch.utils.data
 from torch import nn
+import numpy as np
 
 
 class ListCVAE(nn.Module):
@@ -179,7 +180,18 @@ class ListCVAE(nn.Module):
 
         decoder_out = self.decode(z, conditioned_info)
 
-        return torch.argmax(decoder_out, dim=2)
+        slates = []
+        masking = torch.zeros([decoder_out.shape[0], decoder_out.shape[2]], device=self.device, dtype=torch.float32)
+
+        for slate_item in range(self.slate_size):
+            slate_output = decoder_out[:, slate_item, :]
+            slate_output = slate_output + masking
+            slate_item = torch.argmax(slate_output, dim=1)
+
+            slates.append(slate_item)
+            masking = masking.scatter_(1, slate_item.unsqueeze(dim=1), float('-inf'))
+
+        return torch.stack(slates, dim=1)
 
     def reset_parameters(self):
         """
