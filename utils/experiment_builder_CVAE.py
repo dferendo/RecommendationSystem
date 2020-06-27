@@ -14,7 +14,7 @@ from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 # from graphviz import Digraph
 import torch
 # from torch.autograd import Variable
-
+import math
 
 # def make_dot(var, params):
 #     """ Produces Graphviz representation of PyTorch autograd graph.
@@ -97,6 +97,56 @@ import torch
 #     plt.grid(True)
 
 
+def cycle_linear(start, stop, n_epoch, n_cycle, ratio):
+    L = np.ones(n_epoch)
+    period = n_epoch/n_cycle
+    step = (stop-start)/(period*ratio) # linear schedule
+
+    for c in range(n_cycle):
+
+        v , i = start , 0
+        while v <= stop and (int(i+c*period) < n_epoch):
+            L[int(i+c*period)] = v
+            v += step
+            i += 1
+
+    return L
+
+
+def cycle_sigmoid(start, stop, n_epoch, n_cycle, ratio):
+    L = np.ones(n_epoch)
+    period = n_epoch / n_cycle
+    step = (stop - start) / (period * ratio)  # step is in [0,1]
+
+    # transform into [-6, 6] for plots: v*12.-6.
+
+    for c in range(n_cycle):
+
+        v, i = start, 0
+        while v <= stop:
+            L[int(i + c * period)] = 1.0 / (1.0 + np.exp(- (v * 12. - 6.)))
+            v += step
+            i += 1
+    return L
+
+
+def cycle_cosine(start, stop, n_epoch, n_cycle=4, ratio=0.5):
+    L = np.ones(n_epoch)
+    period = n_epoch / n_cycle
+    step = (stop - start) / (period * ratio)  # step is in [0,1]
+
+    # transform into [0, pi] for plots:
+
+    for c in range(n_cycle):
+
+        v, i = start, 0
+        while v <= stop:
+            L[int(i + c * period)] = 0.5 - .5 * math.cos(v * math.pi)
+            v += step
+            i += 1
+    return L
+
+
 class ExperimentBuilderCVAE(nn.Module):
     def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs):
         super(ExperimentBuilderCVAE, self).__init__()
@@ -105,6 +155,7 @@ class ExperimentBuilderCVAE(nn.Module):
         self.number_of_movies = number_of_movies
 
         self.model = model
+        self.KL_weight = None
 
         self.train_loader = train_loader
         self.evaluation_loader = evaluation_loader
@@ -167,7 +218,7 @@ class ExperimentBuilderCVAE(nn.Module):
             self.device = torch.device('cpu')  # sets the device to be CPU
             print(self.device)
 
-    def loss_function(self, recon_slates, slates, mu, log_variance, prior_mu, prior_log_variance):
+    def loss_function(self, recon_slates, slates, mu, log_variance, prior_mu, prior_log_variance, epoch_idx):
         recon_slates = recon_slates.view(recon_slates.shape[0] * recon_slates.shape[1], recon_slates.shape[2])
         slates = slates.view(slates.shape[0] * slates.shape[1])
 
@@ -177,9 +228,11 @@ class ExperimentBuilderCVAE(nn.Module):
 
         KL = 0.5 * torch.sum(prior_log_variance - log_variance + (log_variance.exp() / prior_log_variance.exp()) + mean_term - 1)
 
-        return (KL * self.configs['beta_weight']) + entropy_loss
+        print(self.KL_weight[epoch_idx])
 
-    def run_training_epoch(self):
+        return (KL * self.KL_weight[epoch_idx]) + entropy_loss
+
+    def run_training_epoch(self, epoch_idx):
         self.model.train()
         all_losses = []
 
@@ -195,7 +248,7 @@ class ExperimentBuilderCVAE(nn.Module):
                 decoder_out, mu, log_variance, prior_mu, prior_log_variance = self.model(slates, padded_interactions,
                                                                                           interactions_length, response_vector)
 
-                loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance)
+                loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance, epoch_idx)
 
                 loss.backward()
                 # plot_grad_flow(self.model.named_parameters())
@@ -253,9 +306,20 @@ class ExperimentBuilderCVAE(nn.Module):
         total_losses = {"loss": [], "precision": [], "hr": [],
                         "diversity": [], "curr_epoch": []}
 
+        assert self.configs['type'] in ['linear', 'sigmoid', 'cosine']
+
+        if self.configs['type'] == 'linear':
+            self.KL_weight = cycle_linear(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
+        elif self.configs['type'] == 'sigmoid':
+            self.KL_weight = cycle_sigmoid(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
+        elif self.configs['type'] == 'cosine':
+            self.KL_weight = cycle_cosine(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
+        else:
+            raise Exception("Give annealing type")
+
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
-            average_loss = self.run_training_epoch()
+            average_loss = self.run_training_epoch(epoch_idx)
             precision_mean, hr_mean, diversity = self.run_evaluation_epoch(epoch_idx)
 
             if precision_mean > self.best_val_model_precision:

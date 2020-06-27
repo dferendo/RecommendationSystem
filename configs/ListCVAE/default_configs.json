@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -29,16 +29,15 @@
   "beta_1": 0.5,
   "beta_2": 0.99,
   "weight_decay": 0,
-  "beta_weight": 1,
 
   "__comment": "Encoder Parameters",
-  "encoder_dims": [1024, 1024],
+  "encoder_dims": [2048, 2048],
   "enc_batch_norm": true,
   "enc_dropout": 0.1,
   "enc_act": "leaky",
 
   "__comment": "Decoder Parameters",
-  "decoder_dims": [1024, 1024],
+  "decoder_dims": [2048, 2048],
   "dec_batch_norm": true,
   "dec_dropout": 0.1,
   "dec_act": "leaky",
@@ -47,5 +46,11 @@
   "prior_dims": [32, 32],
   "prior_batch_norm": false,
   "prior_dropout": 0.0,
-  "prior_act": "default"
+  "prior_act": "default",
+
+  "__comment": "Annealing",
+  "type": "sigmoid",
+  "max_beta": 1,
+  "cycles": 1,
+  "ratio": 0.25
 }
