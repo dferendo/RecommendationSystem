@@ -216,7 +216,7 @@ class ExperimentBuilderCVAE(nn.Module):
         total_losses = {"loss": [], "precision": [], "hr": [],
                         "diversity": [], "curr_epoch": []}
 
-        assert self.configs['type'] in ['linear', 'sigmoid', 'cosine']
+        assert self.configs['type'] in ['linear', 'sigmoid', 'cosine', 'constant']
 
         if self.configs['type'] == 'linear':
             self.KL_weight = cycle_linear(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
@@ -225,7 +225,7 @@ class ExperimentBuilderCVAE(nn.Module):
         elif self.configs['type'] == 'cosine':
             self.KL_weight = cycle_cosine(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
         else:
-            raise Exception("Give annealing type")
+            self.KL_weight = np.full(self.configs['num_of_epochs'], self.configs['max_beta'])
 
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")

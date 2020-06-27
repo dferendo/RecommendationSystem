@@ -21,7 +21,7 @@
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 100,
-  "train_batch_size": 32,
+  "train_batch_size": 64,
   "test_batch_size": 5,
   "embed_dims": 32,
   "latent_dims": 16,
@@ -49,7 +49,7 @@
   "prior_act": "default",
 
   "__comment": "Annealing",
-  "type": "sigmoid",
+  "type": "constant",
   "max_beta": 1,
   "cycles": 1,
   "ratio": 0.25
