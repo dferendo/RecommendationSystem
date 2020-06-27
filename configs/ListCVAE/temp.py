@@ -1,6 +1,8 @@
-for bs in [32, 64, 128, 256]:
-    for lr in [0.001, 0.005, 0.0001, 0.0005]:
-        print(f"{bs},{lr}")
+for type in ['linear', 'sigmoid', 'cosine']:
+    for max_beta in [1, 2, 5]:
+        for cycles in [1, 2, 4]:
+            for ratio in [0.25]:
+                print(f"{type},{max_beta},{cycles},{ratio}")
 
 
     # for embed_dims in [16, 32, 64]:

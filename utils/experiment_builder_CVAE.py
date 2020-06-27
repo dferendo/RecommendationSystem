@@ -7,94 +7,9 @@ from utils.storage import save_statistics
 import tqdm
 import sys
 from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
-# import matplotlib.pyplot as plt
-# from torch.autograd import Variable
-# from graphviz import Digraph
 
-# from graphviz import Digraph
 import torch
-# from torch.autograd import Variable
 import math
-
-# def make_dot(var, params):
-#     """ Produces Graphviz representation of PyTorch autograd graph.
-#
-#     Blue nodes are trainable Variables (weights, bias).
-#     Orange node are saved tensors for the backward pass.
-#
-#     Args:
-#         var: output Variable
-#         params: list of (name, Parameters)
-#     """
-#
-#     param_map = {id(v): k for k, v in params}
-#
-#     node_attr = dict(style='filled',
-#                      shape='box',
-#                      align='left',
-#                      fontsize='12',
-#                      ranksep='0.1',
-#                      height='0.2')
-#
-#     dot = Digraph(
-#         filename='network',
-#         format='pdf',
-#         node_attr=node_attr,
-#         graph_attr=dict(size="12,12"))
-#     seen = set()
-#
-#     def add_nodes(var):
-#         if var not in seen:
-#
-#             node_id = str(id(var))
-#
-#             if torch.is_tensor(var):
-#                 node_label = "saved tensor\n{}".format(tuple(var.size()))
-#                 dot.node(node_id, node_label, fillcolor='orange')
-#
-#             elif hasattr(var, 'variable'):
-#                 variable_name = param_map.get(id(var.variable))
-#                 variable_size = tuple(var.variable.size())
-#                 node_name = "{}\n{}".format(variable_name, variable_size)
-#                 dot.node(node_id, node_name, fillcolor='lightblue')
-#
-#             else:
-#                 node_label = type(var).__name__.replace('Backward', '')
-#                 dot.node(node_id, node_label)
-#
-#             seen.add(var)
-#
-#             if hasattr(var, 'next_functions'):
-#                 for u in var.next_functions:
-#                     if u[0] is not None:
-#                         dot.edge(str(id(u[0])), str(id(var)))
-#                         add_nodes(u[0])
-#
-#             if hasattr(var, 'saved_tensors'):
-#                 for t in var.saved_tensors:
-#                     dot.edge(str(id(t)), str(id(var)))
-#                     add_nodes(t)
-#
-#     add_nodes(var.grad_fn)
-#
-#     return dot
-#
-#
-# def plot_grad_flow(named_parameters):
-#     ave_grads = []
-#     layers = []
-#     for n, p in named_parameters:
-#         if(p.requires_grad) and ("bias" not in n):
-#             layers.append(n)
-#             ave_grads.append(p.grad.abs().mean())
-#     plt.plot(ave_grads, alpha=0.3, color="b")
-#     plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
-#     plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
-#     plt.xlim(xmin=0, xmax=len(ave_grads))
-#     plt.xlabel("Layers")
-#     plt.ylabel("average gradient")
-#     plt.title("Gradient flow")
-#     plt.grid(True)
 
 
 def cycle_linear(start, stop, n_epoch, n_cycle, ratio):
@@ -228,8 +143,6 @@ class ExperimentBuilderCVAE(nn.Module):
 
         KL = 0.5 * torch.sum(prior_log_variance - log_variance + (log_variance.exp() / prior_log_variance.exp()) + mean_term - 1)
 
-        print(self.KL_weight[epoch_idx])
-
         return (KL * self.KL_weight[epoch_idx]) + entropy_loss
 
     def run_training_epoch(self, epoch_idx):
@@ -251,15 +164,12 @@ class ExperimentBuilderCVAE(nn.Module):
                 loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance, epoch_idx)
 
                 loss.backward()
-                # plot_grad_flow(self.model.named_parameters())
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
 
                 pbar.update(1)
                 pbar.set_description(f"loss: {float(loss):.4f}")
-
-        # plt.show()
 
         return np.mean(all_losses)
 
