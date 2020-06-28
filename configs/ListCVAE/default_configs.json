@@ -20,26 +20,26 @@
   "negative_sampling_for_slates": [0,1,2,3,4,5,6],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 100,
-  "train_batch_size": 64,
+  "num_of_epochs": 70,
+  "train_batch_size": 32,
   "test_batch_size": 5,
-  "embed_dims": 32,
-  "latent_dims": 16,
+  "embed_dims": 64,
+  "latent_dims": 32,
   "lr": 0.001,
   "beta_1": 0.5,
   "beta_2": 0.99,
   "weight_decay": 0,
 
   "__comment": "Encoder Parameters",
-  "encoder_dims": [1024, 1024],
+  "encoder_dims": [1024, 1024, 1024, 1024],
   "enc_batch_norm": true,
-  "enc_dropout": 0.1,
+  "enc_dropout": 0.0,
   "enc_act": "leaky",
 
   "__comment": "Decoder Parameters",
-  "decoder_dims": [1024, 1024],
+  "decoder_dims": [1024, 1024, 1024, 1024],
   "dec_batch_norm": true,
-  "dec_dropout": 0.1,
+  "dec_dropout": 0.0,
   "dec_act": "leaky",
 
   "__comment": "prior Parameters",
@@ -51,6 +51,6 @@
   "__comment": "Annealing",
   "type": "constant",
   "max_beta": 1,
-  "cycles": 1,
+  "cycles": 4,
   "ratio": 0.25
 }

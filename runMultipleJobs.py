@@ -64,4 +64,5 @@ with open(args.hyper_parameters_tuning, 'r') as hparams:
 
             os.system(f"sbatch {bash_script_location} {args.run_file} {args.dataset} '{json_merged}'")
         else:
+            os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
             os.system(f"python {args.run_file} --json_configs_string '{json_merged}'")
