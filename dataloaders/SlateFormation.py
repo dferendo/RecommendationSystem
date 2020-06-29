@@ -2,6 +2,31 @@ import numpy as np
 from torch.utils.data import Dataset
 
 
+def string_to_sequence(s):
+    return np.array([ord(c) for c in s], dtype=np.int16)
+
+
+def sequence_to_string(seq):
+    return ''.join([chr(c) for c in seq])
+
+
+def pack_sequences(seqs):
+    values = np.concatenate(seqs, axis=0)
+    offsets = np.cumsum([len(s) for s in seqs])
+    return values, offsets
+
+
+def unpack_sequence(values, offsets, index):
+    off1 = offsets[index]
+    if index > 0:
+        off0 = offsets[index - 1]
+    elif index == 0:
+        off0 = 0
+    else:
+        raise ValueError(index)
+    return values[off0:off1]
+
+
 class SlateFormationDataLoader(Dataset):
     def __init__(self, slate_formations, number_of_movies, one_hot_slates):
         self.slate_formations = slate_formations
@@ -12,7 +37,6 @@ class SlateFormationDataLoader(Dataset):
         self.slate_vector_matrix = None
         self.response_vector_matrix = None
         self.longest_user_interaction = 0
-        self.padded_interactions = None
         self.interactions = None
 
         self.convert_to_vector_form()
@@ -27,23 +51,21 @@ class SlateFormationDataLoader(Dataset):
         self.response_vector_matrix = self.response_vector_matrix.astype(np.int32)
 
         # Needed for padding so that every user has the same amount of interactions
-        temp_user_interactions = self.slate_formations['User Interactions'].str.split('|').values
-        self.longest_user_interaction = len(max(temp_user_interactions, key=len))
+        self.interactions = self.slate_formations['User Interactions']
+        temp = self.interactions.str.split('|').values
 
-        self.padded_interactions = np.full((len(temp_user_interactions), self.longest_user_interaction), self.number_of_movies, dtype=np.int)
-        self.interactions = np.zeros((len(temp_user_interactions),), dtype=np.int)
-
-        # The padding idx is the *self.number_of_movies*
-        for idx, interactions in enumerate(temp_user_interactions):
-            user_interactions = np.array(interactions).astype(np.int32)
-
-            self.padded_interactions[idx, 0:len(user_interactions)] = user_interactions
-            self.interactions[idx] = len(interactions)
+        # Needed for padding so that every user has the same amount of interactions
+        self.longest_user_interaction = len(max(temp, key=len))
 
     def __len__(self):
         return len(self.slate_formations)
 
     def __getitem__(self, idx):
+        user_interactions = np.array(self.interactions[idx].split('|')).astype(np.int16)
+
+        # The padding idx is the *self.number_of_movies*
+        padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)
+        padded_interactions[0:len(user_interactions)] = user_interactions
         slates = self.slate_vector_matrix[idx]
 
         if self.one_hot_slates:
@@ -53,7 +75,7 @@ class SlateFormationDataLoader(Dataset):
 
             slates = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
 
-        return self.user_ids[idx], self.padded_interactions[idx], self.interactions[idx], slates, self.response_vector_matrix[idx]
+        return self.user_ids[idx], padded_interactions, len(user_interactions), slates, self.response_vector_matrix[idx]
 
 
 class SlateFormationTestDataLoader(Dataset):

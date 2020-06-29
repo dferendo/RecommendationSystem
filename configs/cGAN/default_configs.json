@@ -13,7 +13,6 @@
   "test_set_size": 0.15,
   "minimum_user_interaction": 10,
   "minimum_movie_interaction": 100,
-  "maximum_past_user_interactions": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
@@ -21,21 +20,21 @@
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 150,
-  "train_batch_size": 16,
+  "train_batch_size": 32,
   "test_batch_size": 64,
   "embed_dims": 16,
 
   "__comment": "Generator Parameters",
   "noise_hidden_dims": 32,
-  "hidden_layers_dims_gen": [16, 32, 64],
-  "learning_rate_gen": 0.0001,
+  "hidden_layers_dims_gen": [80],
+  "learning_rate_gen": 0.00005,
   "gen_beta_1": 0.5,
   "gen_beta_2": 0.99,
   "gen_dropout": 0,
 
   "__comment": "Discriminator Parameters",
-  "hidden_layers_dims_dis": [16, 32, 64],
-  "learning_rate_dis": 0.0001,
+  "hidden_layers_dims_dis": [160],
+  "learning_rate_dis": 0.00005,
   "dis_beta_1": 0.5,
   "dis_beta_2": 0.99,
   "dis_dropout": 0.3
