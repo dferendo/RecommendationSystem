@@ -51,17 +51,19 @@ class SlateFormationDataLoader(Dataset):
         self.response_vector_matrix = self.response_vector_matrix.astype(np.int32)
 
         # Needed for padding so that every user has the same amount of interactions
-        self.interactions = self.slate_formations['User Interactions']
-        temp = self.interactions.str.split('|').values
+        self.interactions = self.slate_formations['User Interactions'].str.split('|')
+
+        for index, value in self.interactions.items():
+            self.interactions[index] = np.array(value, dtype=np.int16)
 
         # Needed for padding so that every user has the same amount of interactions
-        self.longest_user_interaction = len(max(temp, key=len))
+        self.longest_user_interaction = len(max(self.interactions, key=len))
 
     def __len__(self):
         return len(self.slate_formations)
 
     def __getitem__(self, idx):
-        user_interactions = np.array(self.interactions[idx].split('|')).astype(np.int16)
+        user_interactions = self.interactions.iloc[idx]
 
         # The padding idx is the *self.number_of_movies*
         padded_interactions = np.full(self.longest_user_interaction, self.number_of_movies)
