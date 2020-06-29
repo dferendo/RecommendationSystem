@@ -10,6 +10,7 @@ from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 
 import torch
 import math
+import gc
 
 
 def cycle_linear(start, stop, n_epoch, n_cycle, ratio):
@@ -232,6 +233,8 @@ class ExperimentBuilderCVAE(nn.Module):
             average_loss = self.run_training_epoch(epoch_idx)
             precision_mean, hr_mean, diversity = self.run_evaluation_epoch(epoch_idx)
 
+            f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
+
             if precision_mean > self.best_val_model_precision:
                 self.best_val_model_precision = precision_mean
                 self.best_val_model_idx = epoch_idx
@@ -240,9 +243,10 @@ class ExperimentBuilderCVAE(nn.Module):
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
+            self.writer.add_scalar('F1 Score', f1_score)
             self.writer.add_scalar('Diversity', diversity, epoch_idx)
 
-            print(f'HR: {hr_mean}, Precision: {precision_mean}, Diversity: {diversity}')
+            print(f'HR: {hr_mean}, Precision: {precision_mean}, F1: {f1_score}, Diversity: {diversity}')
 
             self.state['current_epoch_idx'] = epoch_idx
             self.state['best_val_model_precision'] = self.best_val_model_precision
