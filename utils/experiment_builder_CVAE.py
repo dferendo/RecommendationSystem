@@ -214,7 +214,7 @@ class ExperimentBuilderCVAE(nn.Module):
         return precision, hr, diversity
 
     def run_experiment(self):
-        total_losses = {"loss": [], "precision": [], "hr": [],
+        total_losses = {"loss": [], "precision": [], "hr": [], "F1 Score": [],
                         "diversity": [], "curr_epoch": []}
 
         assert self.configs['type'] in ['linear', 'sigmoid', 'cosine', 'constant']
@@ -259,6 +259,7 @@ class ExperimentBuilderCVAE(nn.Module):
             total_losses['loss'].append(average_loss)
             total_losses['precision'].append(precision_mean)
             total_losses['hr'].append(hr_mean)
+            total_losses['F1 Score'].append(f1_score)
             total_losses['diversity'].append(diversity)
             total_losses['curr_epoch'].append(epoch_idx)
 
