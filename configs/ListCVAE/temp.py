@@ -4,13 +4,15 @@
 #             for ratio in [0.25]:
 #                 print(f"{type},{max_beta},{cycles},{ratio}")
 
+# train_batch_size,lr,embed_dims,latent_dims,encoder_dims,enc_dropout,decoder_dims,dec_dropout,
+#
+# batch_norm,activation
 
-# for embed_dims in [16, 32, 64]:
-#     for latent_dims in [16, 32, 64]:
-#         print(f"{embed_dims},{latent_dims}")
-for encoder_dims in ["\"[128,128]\"", "\"[256,256]\"", "\"[512,512]\"", "\"[1024,1024]\"", "\"[512,512,512]\"", "\"[1024,1024,1024]\""]:
-    for enc_dropout in [0., 0.2, 0.5]:
-        print(f"{encoder_dims},{enc_dropout}")
+for batch_size in [32, 128, 256]:
+    for lr in [0.001, 0.0001]:
+        for architecture in ["16,16,\"[128,128]\",0.0,\"[128,128]\",0.0"]:
+            print(f"{batch_size},{lr},{architecture}")
+
 
 
             #     for decoder_dims in ["\"[128,128]\"", "\"[512,512]\"", "\"[1024,1024]\""]:
