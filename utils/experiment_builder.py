@@ -12,24 +12,6 @@ import sys
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 
-
-def plot_grad_flow(named_parameters):
-    ave_grads = []
-    layers = []
-    for n, p in named_parameters:
-        if(p.requires_grad) and ("bias" not in n):
-            layers.append(n)
-            ave_grads.append(p.grad.abs().mean())
-    plt.plot(ave_grads, alpha=0.3, color="b")
-    plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
-    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
-    plt.xlim(xmin=0, xmax=len(ave_grads))
-    plt.xlabel("Layers")
-    plt.ylabel("average gradient")
-    plt.title("Gradient flow")
-    plt.grid(True)
-
-
 class ExperimentBuilderNN(nn.Module, ABC):
     def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs, print_learnable_parameters=True):
         super(ExperimentBuilderNN, self).__init__()
@@ -158,7 +140,6 @@ class ExperimentBuilderNN(nn.Module, ABC):
                 loss = self.train_iteration(idx, values_to_unpack)
 
                 loss.backward()
-                plot_grad_flow(self.model.named_parameters())
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
@@ -180,7 +161,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
                     predicted_slate = self.eval_iteration(values_to_unpack)
 
-                    ground_truth_slate = values_to_unpack[3].cpu()
+                    ground_truth_slate = values_to_unpack[1].cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
