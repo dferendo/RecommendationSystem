@@ -1,13 +1,13 @@
 {
-  "experiment_name": "MF/",
-  "seed": 9023912,
-  "is_training": true,
+  "experiment_name": "ALS/",
+  "seed": 0,
+  "is_training": false,
   "use_gpu": true,
   "save_model": false,
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -16,12 +16,12 @@
 
   "__comment": "Model Parameters",
   "num_of_epochs": 50,
-  "slate_size": 6,
+  "slate_size": [3, 4, 5, 6, 7, 8, 9, 10],
   "train_batch_size": 4096,
   "test_batch_size": 128,
   "neg_sample_per_training_example": 5,
-  "embed_dims": 20,
+  "embed_dims": 64,
   "use_bias": true,
   "lr": 0.01,
-  "weight_decay": 0
+  "weight_decay": 0.1
 }

@@ -18,7 +18,6 @@ def experiments_run():
     configs = extract_args_from_json()
     print(configs)
     set_seeds(configs['seed'])
-
     df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
 
     test_dataset = NoAdditionalInfoTestDataLoader(df_test, df_test_matrix)
@@ -28,6 +27,7 @@ def experiments_run():
     all_movies = np.arange(len(df_train_matrix.columns))
 
     for slate_size in configs['slate_size']:
+        set_seeds(configs['seed'])
         print(f'Test for {slate_size}')
         model = RandomSlateGeneration(slate_size, all_movies, configs['test_batch_size'])
 

@@ -23,5 +23,5 @@
   "embed_dims": 32,
   "use_bias": true,
   "lr": 0.001,
-  "weight_decay": 0.1
+  "weight_decay": 0.001
 }

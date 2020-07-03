@@ -13,7 +13,7 @@ class Parameters:
 
 class ListCVAE(nn.Module):
     def __init__(self, num_of_movies, slate_size, response_dims, embed_dims, encoder_dims, latent_dims, decoder_dims,
-                 prior_dims, device, encoder_params, decoder_params, prior_params):
+                 prior_dims, device, encoder_params, decoder_params, prior_params, gdpp_active):
         super(ListCVAE, self).__init__()
         self.device = device
 
@@ -23,6 +23,7 @@ class ListCVAE(nn.Module):
         self.embed_dims = embed_dims
         self.encoder_dims = encoder_dims
         self.latent_dims = latent_dims
+        self.gdpp_active = gdpp_active
 
         # Index work from 0 - (num_of_movies - 1). Thus, we use num_of_movies as a padding index
         self.padding_idx = self.num_of_movies
@@ -139,10 +140,12 @@ class ListCVAE(nn.Module):
 
         out = self.encoder_layers(encoder_input)
 
-        mu = self.encoder_mu(out)
-        log_variance = self.encoder_log_variance(out)
+        last_hidden = out
 
-        return mu, log_variance
+        mu = self.encoder_mu(last_hidden)
+        log_variance = self.encoder_log_variance(last_hidden)
+
+        return mu, log_variance, last_hidden
 
     def reparameterize(self, mu, log_variance):
         """
@@ -171,6 +174,8 @@ class ListCVAE(nn.Module):
         return out
 
     def forward(self, slate_inputs, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
+        last_hidden_fake = None
+
         # Personalized
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
@@ -179,7 +184,7 @@ class ListCVAE(nn.Module):
         conditioned_info = torch.cat((user_embedding, response_vector), dim=1)
 
         # Encoder
-        mu, log_variance = self.encode(slate_inputs, conditioned_info)
+        mu, log_variance, last_hidden_real = self.encode(slate_inputs, conditioned_info)
 
         # Decoder
         z = self.reparameterize(mu, log_variance)
@@ -190,7 +195,25 @@ class ListCVAE(nn.Module):
         prior_mu = self.prior_mu(prior_out)
         prior_log_variance = self.prior_log_variance(prior_out)
 
-        return decoder_out, mu, log_variance, prior_mu, prior_log_variance
+        if self.gdpp_active:
+            fake_slates = self.get_slates(decoder_out)
+            _, _, last_hidden_fake = self.encode(fake_slates, conditioned_info)
+
+        return decoder_out, mu, log_variance, prior_mu, prior_log_variance, last_hidden_real, last_hidden_fake
+
+    def get_slates(self, decoder_out):
+        slates = []
+        masking = torch.zeros([decoder_out.shape[0], decoder_out.shape[2]], device=self.device, dtype=torch.float32)
+
+        for slate_item in range(self.slate_size):
+            slate_output = decoder_out[:, slate_item, :]
+            slate_output = slate_output + masking
+            slate_item = torch.argmax(slate_output, dim=1)
+
+            slates.append(slate_item)
+            masking = masking.scatter_(1, slate_item.unsqueeze(dim=1), float('-inf'))
+
+        return torch.stack(slates, dim=1)
 
     def inference(self, user_interactions_with_padding, number_of_interactions_per_user, response_vector):
         # Personalized
@@ -209,18 +232,7 @@ class ListCVAE(nn.Module):
 
         decoder_out = self.decode(z, conditioned_info)
 
-        slates = []
-        masking = torch.zeros([decoder_out.shape[0], decoder_out.shape[2]], device=self.device, dtype=torch.float32)
-
-        for slate_item in range(self.slate_size):
-            slate_output = decoder_out[:, slate_item, :]
-            slate_output = slate_output + masking
-            slate_item = torch.argmax(slate_output, dim=1)
-
-            slates.append(slate_item)
-            masking = masking.scatter_(1, slate_item.unsqueeze(dim=1), float('-inf'))
-
-        return torch.stack(slates, dim=1)
+        return self.get_slates(decoder_out)
 
     def reset_parameters(self):
         """

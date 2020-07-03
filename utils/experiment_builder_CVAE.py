@@ -11,6 +11,25 @@ from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
 import torch
 import math
 import gc
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
+
+
+def plot_grad_flow(named_parameters):
+    ave_grads = []
+    layers = []
+    for n, p in named_parameters:
+        if(p.requires_grad) and ("bias" not in n):
+            layers.append(n)
+            ave_grads.append(p.grad.abs().mean())
+    plt.plot(ave_grads, alpha=0.3, color="b")
+    plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
+    plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
+    plt.xlim(xmin=0, xmax=len(ave_grads))
+    plt.xlabel("Layers")
+    plt.ylabel("average gradient")
+    plt.title("Gradient flow")
+    plt.grid(True)
 
 
 def cycle_linear(start, stop, n_epoch, n_cycle, ratio):
@@ -63,6 +82,36 @@ def cycle_cosine(start, stop, n_epoch, n_cycle=4, ratio=0.5):
     return L
 
 
+def compute_gdpp(phi_fake, phi_real, backward=True):
+    def compute_diversity(phi):
+        phi = F.normalize(phi, p=2, dim=1)
+        SB = torch.mm(phi, phi.t())
+        eigVals, eigVecs = torch.symeig(SB, eigenvectors=True)
+        return eigVals, eigVecs
+
+    def normalize_min_max(eigVals):
+        minV, maxV = torch.min(eigVals), torch.max(eigVals)
+        if abs(minV - maxV) < 1e-10:
+            return eigVals
+        return (eigVals - minV) / (maxV - minV)
+
+    fakeEigVals, fakeEigVecs = compute_diversity(phi_fake.double())
+    realEigVals, realEigVecs = compute_diversity(phi_real.double())
+
+    # Scaling factor to make the two losses operating in comparable ranges.
+    magnitudeLoss = 0.0001 * F.mse_loss(target=realEigVals, input=fakeEigVals)
+    structureLoss = -torch.sum(torch.mul(fakeEigVecs, realEigVecs), 0)
+    normalizedRealEigVals = normalize_min_max(realEigVals)
+    weightedStructureLoss = torch.sum(
+        torch.mul(normalizedRealEigVals, structureLoss))
+    gdppLoss = magnitudeLoss + weightedStructureLoss
+
+    if backward:
+        gdppLoss.backward(retain_graph=True)
+
+    return gdppLoss.item()
+
+
 class ExperimentBuilderCVAE(nn.Module):
     def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs):
         super(ExperimentBuilderCVAE, self).__init__()
@@ -72,6 +121,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
         self.model = model
         self.KL_weight = None
+        self.count = 0
 
         self.train_loader = train_loader
         self.evaluation_loader = evaluation_loader
@@ -159,12 +209,18 @@ class ExperimentBuilderCVAE(nn.Module):
                 slates = slates.to(self.device).long()
                 response_vector = response_vector.to(self.device).float()
 
-                decoder_out, mu, log_variance, prior_mu, prior_log_variance = self.model(slates, padded_interactions,
-                                                                                          interactions_length, response_vector)
+                decoder_out, mu, log_variance, prior_mu, prior_log_variance, last_hidden_real, last_hidden_fake = \
+                    self.model(slates, padded_interactions, interactions_length, response_vector)
 
                 loss = self.loss_function(decoder_out, slates, mu, log_variance, prior_mu, prior_log_variance, epoch_idx)
 
+                if self.configs['gdpp_weight'] > 0:
+                    gddp_average_loss = compute_gdpp(last_hidden_real, last_hidden_fake)
+                    loss += gddp_average_loss
+
                 loss.backward()
+
+                self.count += 1
                 self.optimizer.step()
 
                 all_losses.append(float(loss))
@@ -243,7 +299,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
             self.writer.add_scalar('Precision', precision_mean, epoch_idx)
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
-            self.writer.add_scalar('F1 Score', f1_score)
+            self.writer.add_scalar('F1 Score', f1_score, epoch_idx)
             self.writer.add_scalar('Diversity', diversity, epoch_idx)
 
             print(f'HR: {hr_mean}, Precision: {precision_mean}, F1: {f1_score}, Diversity: {diversity}')
