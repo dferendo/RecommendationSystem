@@ -1,4 +1,4 @@
-embed_dims,lr,weight_decay
+lr,embed_dims,weight_decay
 0.001,8,0
 0.001,8,0.1
 0.001,8,0.01
