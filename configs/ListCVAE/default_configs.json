@@ -13,21 +13,20 @@
   "test_set_size": 0.15,
   "minimum_user_interaction": 10,
   "minimum_movie_interaction": 100,
-  "maximum_past_user_interactions": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
   "slate_size": 6,
   "negative_sampling_for_slates": [0,1,2,3,4,5,6],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 70,
+  "num_of_epochs": 100,
   "train_batch_size": 256,
   "test_batch_size": 5,
   "embed_dims": 64,
-  "latent_dims": 64,
+  "latent_dims": 16,
   "lr": 0.001,
-  "beta_1": 0.5,
-  "beta_2": 0.99,
+  "beta_1": 0.9,
+  "beta_2": 0.999,
   "weight_decay": 0,
   "gdpp_weight": 0,
 
@@ -35,23 +34,23 @@
   "encoder_dims": [1024, 1024],
   "enc_batch_norm": true,
   "enc_dropout": 0.0,
-  "enc_act": "leaky",
+  "enc_act": "default",
 
   "__comment": "Decoder Parameters",
   "decoder_dims": [1024, 1024],
   "dec_batch_norm": true,
   "dec_dropout": 0.0,
-  "dec_act": "leaky",
+  "dec_act": "default",
 
   "__comment": "prior Parameters",
   "prior_dims": [32, 32],
-  "prior_batch_norm": false,
+  "prior_batch_norm": true,
   "prior_dropout": 0.0,
   "prior_act": "default",
 
   "__comment": "Annealing",
   "type": "constant",
-  "max_beta": 2,
+  "max_beta": 2.2,
   "cycles": 2,
   "ratio": 0.25
 }

@@ -1,4 +1,4 @@
-SlateSize,Algorithm,Seed,Precision,Recall
+"Slate Size",Algorithm,Seed,"Precision (%)","Recall (%)"
 3,Random,0,0.007453739901,0.000311628043
 4,Random,0,0.008131352619,0.000391587075
 5,Random,0,0.007412040657,0.000474493109
