@@ -15,13 +15,13 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Model Parameters",
-  "num_of_epochs": 20,
+  "num_of_epochs": 10,
   "slate_size": 6,
-  "train_batch_size": 4096,
+  "train_batch_size": 256,
   "test_batch_size": 5,
-  "neg_sample_per_training_example": 3,
+  "neg_sample_per_training_example": 0,
   "embed_dims": 32,
   "use_bias": true,
   "lr": 0.001,
-  "weight_decay": 0.001
+  "weight_decay": 0.0
 }

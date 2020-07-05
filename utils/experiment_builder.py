@@ -12,6 +12,7 @@ import sys
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 
+
 class ExperimentBuilderNN(nn.Module, ABC):
     def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs, print_learnable_parameters=True):
         super(ExperimentBuilderNN, self).__init__()
@@ -28,7 +29,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
         self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'], weight_decay=configs['weight_decay'])
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=configs['lr'], weight_decay=configs['weight_decay'])
 
         if print_learnable_parameters:
             self.print_parameters(self.named_parameters)

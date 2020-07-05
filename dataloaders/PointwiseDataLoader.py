@@ -17,6 +17,8 @@ class PointwiseDataLoader(Dataset):
         # This will contain a matrix [user_id, item_id]. Note the item_id can be a positive or negative interaction
         self.all_interactions = None
 
+        self.negative_sampling()
+
     def negative_sampling(self):
         grouped_users = self.training_examples.groupby(['userId'])['movieId'].apply(list)
         all_samples = []
