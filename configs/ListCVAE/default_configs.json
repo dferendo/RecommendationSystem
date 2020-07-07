@@ -50,7 +50,7 @@
 
   "__comment": "Annealing",
   "type": "constant",
-  "max_beta": 2.2,
+  "max_beta": 2,
   "cycles": 2,
   "ratio": 0.25
 }

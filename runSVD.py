@@ -8,10 +8,7 @@ import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
-from models.MF import MF
-from sklearn.decomposition import TruncatedSVD
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
-import tqdm, sys
+from surprise import Dataset
 
 
 class MFExperimentBuilder(ExperimentBuilderNN):
@@ -74,45 +71,41 @@ def experiments_run():
     total_movies = len(df_train_matrix.columns)
     total_users = len(df_train_matrix.index)
 
-    svd = TruncatedSVD(n_components=configs['embed_dims'], n_iter=configs['num_of_epochs'], random_state=configs['seed'])
-    svd_u = svd.fit_transform(df_train_matrix.to_numpy())
-    svd_m = svd.fit_transform(df_train_matrix.to_numpy().T)
-
-    predicted_slates = []
-    ground_truth_slates = []
-
-    with tqdm.tqdm(total=len(test_loader), file=sys.stdout) as pbar_val:
-        for idx, values_to_unpack in enumerate(test_loader):
-            user_indexes = values_to_unpack[0]
-
-            slates = []
-
-            for user_index in user_indexes:
-                user_index = user_index.item()
-
-                pred_slates = np.dot(svd_u[user_index], svd_m.T).argsort()[-configs['slate_size']:][::-1]
-
-                slates.append(pred_slates)
-
-            temp_loop = np.vstack(slates)
-
-            ground_truth_slate = values_to_unpack[1].cpu()
-            ground_truth_indexes = np.nonzero(ground_truth_slate)
-            grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
-                                            np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[
-                                            :-1])
-            predicted_slates.append(temp_loop)
-            ground_truth_slates.extend(grouped_ground_truth)
-
-            pbar_val.update(1)
-
-    predicted_slates = np.vstack(predicted_slates)
-    predicted_slates = torch.from_numpy(predicted_slates)
-    diversity = movie_diversity(predicted_slates, total_movies)
-
-    precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
-
-    print(f'HR: {hr}, Precision: {precision}, Diversity: {diversity}')
+    # predicted_slates = []
+    # ground_truth_slates = []
+    #
+    # with tqdm.tqdm(total=len(test_loader), file=sys.stdout) as pbar_val:
+    #     for idx, values_to_unpack in enumerate(test_loader):
+    #         user_indexes = values_to_unpack[0]
+    #
+    #         slates = []
+    #
+    #         for user_index in user_indexes:
+    #             user_index = user_index.item()
+    #
+    #             pred_slates = np.dot(svd_u[user_index], svd_m.T).argsort()[-configs['slate_size']:][::-1]
+    #
+    #             slates.append(pred_slates)
+    #
+    #         temp_loop = np.vstack(slates)
+    #
+    #         ground_truth_slate = values_to_unpack[1].cpu()
+    #         ground_truth_indexes = np.nonzero(ground_truth_slate)
+    #         grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
+    #                                         np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[
+    #                                         :-1])
+    #         predicted_slates.append(temp_loop)
+    #         ground_truth_slates.extend(grouped_ground_truth)
+    #
+    #         pbar_val.update(1)
+    #
+    # predicted_slates = np.vstack(predicted_slates)
+    # predicted_slates = torch.from_numpy(predicted_slates)
+    # diversity = movie_diversity(predicted_slates, total_movies)
+    #
+    # precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+    #
+    # print(f'HR: {hr}, Precision: {precision}, Diversity: {diversity}')
 
 
 if __name__ == '__main__':
