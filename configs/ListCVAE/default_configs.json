@@ -33,13 +33,13 @@
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
   "enc_batch_norm": true,
-  "enc_dropout": 0.1,
+  "enc_dropout": 0.3,
   "enc_act": "leaky",
 
   "__comment": "Decoder Parameters",
   "decoder_dims": [1024, 1024],
   "dec_batch_norm": true,
-  "dec_dropout": 0.1,
+  "dec_dropout": 0.3,
   "dec_act": "leaky",
 
   "__comment": "prior Parameters",
