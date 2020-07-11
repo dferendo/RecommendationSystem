@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -33,7 +33,7 @@
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
   "enc_batch_norm": true,
-  "enc_dropout": 0.3,
+  "enc_dropout": 0.4,
   "enc_act": "leaky",
 
   "__comment": "Decoder Parameters",

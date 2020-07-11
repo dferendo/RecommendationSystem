@@ -83,15 +83,16 @@ class ListCVAE(nn.Module):
 
         if parameters.batch_norm:
             block.append(nn.BatchNorm1d(out_feat))
-        if parameters.dropout:
-            block.append(nn.Dropout(parameters.dropout))
 
         if parameters.activation_function == 'leaky':
-            block.append(nn.LeakyReLU(0.02))
+            block.append(nn.LeakyReLU())
         elif parameters.activation_function == 'relu':
             block.append(nn.ReLU())
         else:
             block.append(nn.Tanh())
+
+        if parameters.dropout:
+            block.append(nn.Dropout(parameters.dropout))
 
         return block
 
@@ -101,15 +102,16 @@ class ListCVAE(nn.Module):
 
         if parameters.batch_norm:
             block.append(nn.BatchNorm1d(out_feat))
-        if parameters.dropout:
-            block.append(nn.Dropout(parameters.dropout))
 
         if parameters.activation_function == 'leaky':
-            block.append(nn.LeakyReLU(0.02))
+            block.append(nn.LeakyReLU())
         elif parameters.activation_function == 'relu':
             block.append(nn.ReLU())
         else:
             block.append(nn.Tanh())
+
+        if parameters.dropout:
+            block.append(nn.Dropout(parameters.dropout))
 
         return block
 
@@ -119,15 +121,16 @@ class ListCVAE(nn.Module):
 
         if parameters.batch_norm:
             block.append(nn.BatchNorm1d(out_feat))
-        if parameters.dropout:
-            block.append(nn.Dropout(parameters.dropout))
 
         if parameters.activation_function == 'leaky':
-            block.append(nn.LeakyReLU(0.02))
+            block.append(nn.LeakyReLU())
         elif parameters.activation_function == 'relu':
             block.append(nn.ReLU())
         else:
             block.append(nn.Tanh())
+
+        if parameters.dropout:
+            block.append(nn.Dropout(parameters.dropout))
 
         return block
 
