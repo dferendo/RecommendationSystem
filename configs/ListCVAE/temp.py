@@ -21,8 +21,17 @@
 #             #             print(f"{embed_dims},{latent_dims},{encoder_dims},{decoder_dims},{prior_dims}")
 #
 #
+#
+# for a in [0.001, 0.0001]:
+#     for b in [16, 32, 64]:
+#         for c in [0.001, 0.0001, 0.00001]:
+#             print(f"{a},{b},{c}")
 
-for a in [0.001, 0.0001]:
-    for b in [16, 32, 64]:
-        for c in [0.001, 0.0001, 0.00001]:
-            print(f"{a},{b},{c}")
+
+for bs in [64, 128, 256]:
+    for embed in [16, 32, 64]:
+        for ld in [16, 32]:
+            for lr in [0.001, 0.0005]:
+                for dims in ["\"[256,256]\"", "\"[1024,1024]\""]:
+                    for prior_dims in ["\"[32,32]\""]:
+                        print(f"{bs},{embed},{ld},{lr},{dims},{dims},{prior_dims}")

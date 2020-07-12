@@ -1,5 +1,5 @@
 {
-  "experiment_name": "listcvae/",
+  "experiment_name": "listcvae_no_bn/",
   "seed": 0,
   "is_training": true,
   "use_gpu": true,
@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -19,7 +19,7 @@
   "negative_sampling_for_slates": [0,1,2,3,4,5,6],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 100,
+  "num_of_epochs": 50,
   "train_batch_size": 64,
   "test_batch_size": 5,
   "embed_dims": 64,
@@ -32,25 +32,25 @@
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
-  "enc_batch_norm": true,
-  "enc_dropout": 0.4,
-  "enc_act": "leaky",
+  "enc_batch_norm": false,
+  "enc_dropout": 0.0,
+  "enc_act": "default",
 
   "__comment": "Decoder Parameters",
   "decoder_dims": [1024, 1024],
-  "dec_batch_norm": true,
-  "dec_dropout": 0.3,
-  "dec_act": "leaky",
+  "dec_batch_norm": false,
+  "dec_dropout": 0.0,
+  "dec_act": "default",
 
   "__comment": "prior Parameters",
   "prior_dims": [32, 32],
-  "prior_batch_norm": true,
+  "prior_batch_norm": false,
   "prior_dropout": 0.0,
   "prior_act": "default",
 
   "__comment": "Annealing",
   "type": "constant",
-  "max_beta": 2,
+  "max_beta": 1,
   "cycles": 2,
   "ratio": 0.25
 }

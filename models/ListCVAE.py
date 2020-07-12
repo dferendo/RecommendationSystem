@@ -58,8 +58,7 @@ class ListCVAE(nn.Module):
 
         self.decoder_layers = nn.Sequential(
             *layers_block,
-            nn.Linear(input_dims, self.embed_dims * self.slate_size),
-            nn.Tanh()
+            nn.Linear(input_dims, self.embed_dims * self.slate_size)
         )
 
         # Prior
