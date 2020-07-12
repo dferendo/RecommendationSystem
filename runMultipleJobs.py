@@ -5,7 +5,7 @@ import argparse
 
 '''
 Example: 
-python ./RunMultipleJobs.py --default_configs ./configs/cGAN/default_configs.json --hyper_parameters_tuning ./configs/cGAN/multi_runs.csv --run_file runCGAN.py --run_on_cluster false
+python ./runMultipleJobs.py --default_configs ./configs/cGAN/default_configs.json --hyper_parameters_tuning ./configs/cGAN/multi_runs.csv --run_file runCGAN.py --run_on_cluster false
 '''
 
 

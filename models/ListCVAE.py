@@ -203,9 +203,10 @@ class ListCVAE(nn.Module):
 
         return decoder_out, mu, log_variance, prior_mu, prior_log_variance, last_hidden_real, last_hidden_fake
 
-    def get_slates(self, decoder_out):
+    def get_slates(self, user_interactions_with_padding, decoder_out):
         slates = []
         masking = torch.zeros([decoder_out.shape[0], decoder_out.shape[2]], device=self.device, dtype=torch.float32)
+        masking = masking.scatter_(1, user_interactions_with_padding, float('-inf'))
 
         for slate_item in range(self.slate_size):
             slate_output = decoder_out[:, slate_item, :]
@@ -234,7 +235,7 @@ class ListCVAE(nn.Module):
 
         decoder_out = self.decode(z, conditioned_info)
 
-        return self.get_slates(decoder_out)
+        return self.get_slates(user_interactions_with_padding, decoder_out)
 
     def reset_parameters(self):
         """

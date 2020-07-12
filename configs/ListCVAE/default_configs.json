@@ -1,5 +1,5 @@
 {
-  "experiment_name": "listcvae_no_bn/",
+  "experiment_name": "listcvae/",
   "seed": 0,
   "is_training": true,
   "use_gpu": true,
