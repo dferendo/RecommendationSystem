@@ -1,5 +1,5 @@
 {
-  "experiment_name": "listcvae/",
+  "experiment_name": "listcvae_dropout_annealing/",
   "seed": 0,
   "is_training": true,
   "use_gpu": true,
@@ -19,10 +19,10 @@
   "negative_sampling_for_slates": [0,1,2,3,4,5,6],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 50,
+  "num_of_epochs": 70,
   "train_batch_size": 64,
   "test_batch_size": 5,
-  "embed_dims": 64,
+  "embed_dims": 16,
   "latent_dims": 32,
   "lr": 0.0005,
   "beta_1": 0.9,
@@ -32,19 +32,19 @@
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
-  "enc_batch_norm": false,
+  "enc_batch_norm": true,
   "enc_dropout": 0.0,
   "enc_act": "default",
 
   "__comment": "Decoder Parameters",
   "decoder_dims": [1024, 1024],
-  "dec_batch_norm": false,
+  "dec_batch_norm": true,
   "dec_dropout": 0.0,
   "dec_act": "default",
 
   "__comment": "prior Parameters",
   "prior_dims": [32, 32],
-  "prior_batch_norm": false,
+  "prior_batch_norm": true,
   "prior_dropout": 0.0,
   "prior_act": "default",
 

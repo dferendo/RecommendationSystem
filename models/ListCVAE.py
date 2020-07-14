@@ -198,7 +198,7 @@ class ListCVAE(nn.Module):
         prior_log_variance = self.prior_log_variance(prior_out)
 
         if self.gdpp_active:
-            fake_slates = self.get_slates(decoder_out)
+            fake_slates = self.get_slates(user_interactions_with_padding, decoder_out)
             _, _, last_hidden_fake = self.encode(fake_slates, conditioned_info)
 
         return decoder_out, mu, log_variance, prior_mu, prior_log_variance, last_hidden_real, last_hidden_fake

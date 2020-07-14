@@ -216,7 +216,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
                 if self.configs['gdpp_weight'] > 0:
                     gddp_average_loss = compute_gdpp(last_hidden_real, last_hidden_fake)
-                    loss += gddp_average_loss
+                    loss += self.configs['gdpp_weight'] * gddp_average_loss
 
                 loss.backward()
 
