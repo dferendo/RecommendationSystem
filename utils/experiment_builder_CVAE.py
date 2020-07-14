@@ -261,11 +261,11 @@ class ExperimentBuilderCVAE(nn.Module):
         predicted_slates = predicted_slates.cpu()
         precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
 
-        path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
+        # path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
 
-        with open(path_to_save, 'w') as f:
-            for item in predicted_slates:
-                f.write(f'{item}\n')
+        # with open(path_to_save, 'w') as f:
+        #     for item in predicted_slates:
+        #         f.write(f'{item}\n')
 
         return precision, hr, diversity
 
