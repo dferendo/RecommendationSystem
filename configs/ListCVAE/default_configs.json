@@ -1,7 +1,7 @@
 {
-  "experiment_name": "listcvae_dropout_annealing/",
+  "experiment_name": "listcvae_test/",
   "seed": 0,
-  "is_training": true,
+  "is_training": false,
   "use_gpu": true,
   "save_model": false,
   "continue_from_epoch": -1,
@@ -15,8 +15,8 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
-  "slate_size": 6,
-  "negative_sampling_for_slates": [0,1,2,3,4,5,6],
+  "slate_size": 10,
+  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 50,
