@@ -11,7 +11,7 @@ import json
 
 
 def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates,
-                             save_location):
+                             save_location, movies_categories):
     """
     Return the slates. Each slate has a user_id followed by a slate containing
     *slate_size* movie_ids, *slate_size* response vector (whether the user had an interaction or not) and the user
@@ -24,6 +24,7 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
     :param negative_sampling_for_slates: This is an array where each element indicates how many negative examples
     per slate.
     :param save_location: Where to save the slates.
+    :param movies_categories:
     """
     print("Generating slate formation.....")
     start = time.process_time()
@@ -85,16 +86,20 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
                 np.random.shuffle(shuffled)
                 slate_movies, response_vector = zip(*shuffled)
 
+                slate_genres = np.array(list(map(lambda movie_index: movies_categories[movie_index], slate_movies)))
+                unique_genres_in_slate = len(np.unique(np.nonzero(slate_genres)[1]))
+
                 sample = [user_id,
                           '|'.join(str(e) for e in all_user_interactions_indexes),
                           '|'.join(str(e) for e in slate_movies),
-                          '|'.join(str(e) for e in response_vector)]
+                          '|'.join(str(e) for e in response_vector),
+                          unique_genres_in_slate]
 
                 all_samples.append(sample)
 
             pbar.update(1)
 
-    df = pd.DataFrame(all_samples, columns=['User Id', 'User Interactions', 'Slate Movies', 'Response Vector'])
+    df = pd.DataFrame(all_samples, columns=['User Id', 'User Interactions', 'Slate Movies', 'Response Vector', 'Genres'])
     df.to_csv(save_location, index=False)
 
     print("Time taken in seconds: ", time.process_time() - start)
@@ -153,19 +158,25 @@ def get_data_loaders(configs, one_hot):
                                                                  configs['is_training'])
     slate_formation_file_location_configs = os.path.join(configs['data_location'], slate_formation_file_name)
 
+    genre_matrix_location = os.path.join(configs['data_location'], 'genre_matrix.npy')
+
     # Check if we have the slates for training
-    if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location):
+    if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location) \
+            and os.path.isfile(genre_matrix_location):
         slate_formation = pd.read_csv(slate_formation_file_location)
         test_slate_formation = pd.read_csv(slate_formation_test_file_location)
 
         with open(slate_formation_file_location_configs, 'r') as fp:
             dataset_configs = json.load(fp)
+
+        movies_categories = np.load(genre_matrix_location)
     else:
         df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
 
         slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
                                                    configs['negative_sampling_for_slates'],
-                                                   slate_formation_file_location)
+                                                   slate_formation_file_location,
+                                                   movies_categories)
 
         test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
                                                              slate_formation_test_file_location)
@@ -174,6 +185,8 @@ def get_data_loaders(configs, one_hot):
 
         with open(slate_formation_file_location_configs, 'w') as fp:
             json.dump(dataset_configs, fp)
+
+        np.save(genre_matrix_location, movies_categories)
 
     print(f'Number of users: {dataset_configs["number_of_users"]}, Number of movies: {dataset_configs["number_of_movies"]}')
 
@@ -185,4 +198,4 @@ def get_data_loaders(configs, one_hot):
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=False, num_workers=4,
                              drop_last=False)
 
-    return train_loader, test_loader, dataset_configs
+    return train_loader, test_loader, dataset_configs, movies_categories

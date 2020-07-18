@@ -6,7 +6,7 @@ import os
 from utils.storage import save_statistics
 import tqdm
 import sys
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
+from utils.evaluation_metrics import precision_hit_coverage_ratio, movie_diversity
 
 import torch
 import math
@@ -113,11 +113,12 @@ def compute_gdpp(phi_fake, phi_real, backward=True):
 
 
 class ExperimentBuilderCVAE(nn.Module):
-    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, configs):
+    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, movie_categories, configs):
         super(ExperimentBuilderCVAE, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
+        self.movie_categories = movie_categories
 
         self.model = model
         self.KL_weight = None
@@ -128,7 +129,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
         self.criterion = torch.nn.CrossEntropyLoss()
 
-        self.device = torch.cuda.current_device()
+        # self.device = torch.cuda.current_device()
         self.set_device(configs['use_gpu'])
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=configs['lr'],
@@ -201,13 +202,19 @@ class ExperimentBuilderCVAE(nn.Module):
         all_losses = []
 
         with tqdm.tqdm(total=len(self.train_loader), file=sys.stdout) as pbar:
-            for idx, (user_ids, padded_interactions, interactions_length, slates, response_vector) in enumerate(self.train_loader):
+            for idx, (user_ids, padded_interactions, interactions_length, slates, click_vector, genre_count) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
 
                 padded_interactions = padded_interactions.to(self.device)
                 interactions_length = interactions_length.to(self.device)
                 slates = slates.to(self.device).long()
-                response_vector = response_vector.to(self.device).float()
+
+                click_vector = click_vector.to(self.device).float()
+                response_vector = click_vector.sum(dim=1).unsqueeze(dim=1)
+
+                if self.configs['diverse']:
+                    genre_vector = genre_count.to(self.device).float().unsqueeze(dim=1)
+                    response_vector = torch.cat((response_vector, genre_vector), dim=1)
 
                 decoder_out, mu, log_variance, prior_mu, prior_log_variance, last_hidden_real, last_hidden_fake = \
                     self.model(slates, padded_interactions, interactions_length, response_vector)
@@ -240,8 +247,15 @@ class ExperimentBuilderCVAE(nn.Module):
                 for idx, (user_ids, padded_interactions, interaction_length, ground_truth) in enumerate(self.evaluation_loader):
                     padded_interactions = padded_interactions.to(self.device)
                     interaction_length = interaction_length.to(self.device)
-                    response_vector = torch.full((padded_interactions.shape[0], self.configs['slate_size']),
-                                                 1, device=self.device, dtype=torch.float32)
+
+                    click_vector = torch.full((padded_interactions.shape[0], self.configs['slate_size']),
+                                              1, device=self.device, dtype=torch.float32)
+                    response_vector = click_vector.sum(dim=1).unsqueeze(dim=1)
+
+                    if self.configs['diverse']:
+                        genre_vector = torch.full((padded_interactions.shape[0], 1), self.movie_categories.shape[1],
+                                                  device=self.device, dtype=torch.float32)
+                        response_vector = torch.cat((response_vector, genre_vector), dim=1)
 
                     model_slates = self.model.inference(padded_interactions, interaction_length, response_vector)
 
@@ -259,7 +273,7 @@ class ExperimentBuilderCVAE(nn.Module):
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
-        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)
 
         # path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
 
@@ -267,11 +281,11 @@ class ExperimentBuilderCVAE(nn.Module):
         #     for item in predicted_slates:
         #         f.write(f'{item}\n')
 
-        return precision, hr, diversity
+        return precision, hr, diversity, cc
 
     def run_experiment(self):
         total_losses = {"loss": [], "precision": [], "hr": [], "F1 Score": [],
-                        "diversity": [], "curr_epoch": []}
+                        "diversity": [], "cc": [], "curr_epoch": []}
 
         assert self.configs['type'] in ['linear', 'sigmoid', 'cosine', 'constant']
 
@@ -287,7 +301,7 @@ class ExperimentBuilderCVAE(nn.Module):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
             average_loss = self.run_training_epoch(epoch_idx)
-            precision_mean, hr_mean, diversity = self.run_evaluation_epoch(epoch_idx)
+            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(epoch_idx)
 
             f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
 
@@ -301,8 +315,9 @@ class ExperimentBuilderCVAE(nn.Module):
             self.writer.add_scalar('Hit Ratio', hr_mean, epoch_idx)
             self.writer.add_scalar('F1 Score', f1_score, epoch_idx)
             self.writer.add_scalar('Diversity', diversity, epoch_idx)
+            self.writer.add_scalar('CC', cc, epoch_idx)
 
-            print(f'HR: {hr_mean}, Precision: {precision_mean}, F1: {f1_score}, Diversity: {diversity}')
+            print(f'HR: {hr_mean}, Precision: {precision_mean}, F1: {f1_score}, Diversity: {diversity}, CC: {cc}')
 
             self.state['current_epoch_idx'] = epoch_idx
             self.state['best_val_model_precision'] = self.best_val_model_precision
@@ -317,6 +332,7 @@ class ExperimentBuilderCVAE(nn.Module):
             total_losses['hr'].append(hr_mean)
             total_losses['F1 Score'].append(f1_score)
             total_losses['diversity'].append(diversity)
+            total_losses['CC'].append(cc)
             total_losses['curr_epoch'].append(epoch_idx)
 
             save_statistics(experiment_log_dir=self.experiment_logs, filename='summary.csv',

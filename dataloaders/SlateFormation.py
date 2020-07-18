@@ -2,31 +2,6 @@ import numpy as np
 from torch.utils.data import Dataset
 
 
-def string_to_sequence(s):
-    return np.array([ord(c) for c in s], dtype=np.int16)
-
-
-def sequence_to_string(seq):
-    return ''.join([chr(c) for c in seq])
-
-
-def pack_sequences(seqs):
-    values = np.concatenate(seqs, axis=0)
-    offsets = np.cumsum([len(s) for s in seqs])
-    return values, offsets
-
-
-def unpack_sequence(values, offsets, index):
-    off1 = offsets[index]
-    if index > 0:
-        off0 = offsets[index - 1]
-    elif index == 0:
-        off0 = 0
-    else:
-        raise ValueError(index)
-    return values[off0:off1]
-
-
 class SlateFormationDataLoader(Dataset):
     def __init__(self, slate_formations, number_of_movies, one_hot_slates):
         self.slate_formations = slate_formations
@@ -36,6 +11,7 @@ class SlateFormationDataLoader(Dataset):
         self.user_ids = None
         self.slate_vector_matrix = None
         self.response_vector_matrix = None
+        self.genre_counts = None
         self.longest_user_interaction = 0
         self.interactions = None
 
@@ -49,6 +25,11 @@ class SlateFormationDataLoader(Dataset):
 
         self.response_vector_matrix = np.stack(self.slate_formations['Response Vector'].str.split('|').values)
         self.response_vector_matrix = self.response_vector_matrix.astype(np.int32)
+
+        self.response_vector_matrix = np.stack(self.slate_formations['Response Vector'].str.split('|').values)
+        self.response_vector_matrix = self.response_vector_matrix.astype(np.int32)
+
+        self.genre_counts = self.slate_formations['Genres'].values
 
         # Needed for padding so that every user has the same amount of interactions
         self.interactions = self.slate_formations['User Interactions'].str.split('|')
@@ -77,7 +58,7 @@ class SlateFormationDataLoader(Dataset):
 
             slates = slate_one_hot.reshape((len(self.slate_vector_matrix[idx]) * self.number_of_movies,))
 
-        return self.user_ids[idx], padded_interactions, len(user_interactions), slates, self.response_vector_matrix[idx]
+        return self.user_ids[idx], padded_interactions, len(user_interactions), slates, self.response_vector_matrix[idx], self.genre_counts[idx]
 
 
 class SlateFormationTestDataLoader(Dataset):

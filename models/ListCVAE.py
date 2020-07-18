@@ -181,7 +181,6 @@ class ListCVAE(nn.Module):
         # Personalized
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
-        response_vector = response_vector.sum(dim=1).unsqueeze(dim=1)
 
         conditioned_info = torch.cat((user_embedding, response_vector), dim=1)
 
@@ -222,7 +221,6 @@ class ListCVAE(nn.Module):
         # Personalized
         movie_embedding = self.embedding_movies(user_interactions_with_padding)
         user_embedding = torch.sum(movie_embedding, dim=1) / number_of_interactions_per_user.unsqueeze(dim=1)
-        response_vector = response_vector.sum(dim=1).unsqueeze(dim=1)
 
         conditioned_info = torch.cat((user_embedding, response_vector), dim=1)
 

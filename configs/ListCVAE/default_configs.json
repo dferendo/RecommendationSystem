@@ -2,12 +2,12 @@
   "experiment_name": "listcvae_test/",
   "seed": 0,
   "is_training": false,
-  "use_gpu": true,
+  "use_gpu": false,
   "save_model": false,
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -15,8 +15,8 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
-  "slate_size": 10,
-  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5],
+  "slate_size": 6,
+  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 20,
@@ -29,6 +29,7 @@
   "beta_2": 0.999,
   "weight_decay": 0,
   "gdpp_weight": 0,
+  "diverse": true,
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
