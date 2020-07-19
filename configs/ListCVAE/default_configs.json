@@ -1,13 +1,13 @@
 {
   "experiment_name": "listcvae_diverse/",
   "seed": 0,
-  "is_training": false,
+  "is_training": true,
   "use_gpu": true,
   "save_model": false,
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -19,7 +19,7 @@
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 20,
+  "num_of_epochs": 50,
   "train_batch_size": 64,
   "test_batch_size": 5,
   "embed_dims": 32,
