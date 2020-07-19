@@ -14,7 +14,7 @@ def precision_hit_coverage_ratio(predicted_slates, ground_truths, movies_categor
         precision_score += (len(intersection) / (1.0 * len(predicted_slate)))
 
         # Genres Coverage
-        slate_genres = np.array(list(map(lambda movie_index: movies_categories[movie_index], predicted_slates)))
+        slate_genres = np.array(list(map(lambda movie_index: movies_categories[movie_index], predicted_slate)))
         unique_genres_in_slate = len(np.unique(np.nonzero(slate_genres)[1]))
 
         category_coverage += unique_genres_in_slate / movies_categories.shape[1]
