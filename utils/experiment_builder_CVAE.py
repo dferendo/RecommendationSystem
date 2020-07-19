@@ -285,7 +285,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
     def run_experiment(self):
         total_losses = {"loss": [], "precision": [], "hr": [], "F1 Score": [],
-                        "diversity": [], "cc": [], "curr_epoch": []}
+                        "diversity": [], "CC": [], "curr_epoch": []}
 
         assert self.configs['type'] in ['linear', 'sigmoid', 'cosine', 'constant']
 
