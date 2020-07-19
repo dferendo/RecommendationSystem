@@ -20,7 +20,7 @@ def experiments_run():
     else:
         response_vector_dims = 1
 
-    device = torch.device("cpu")
+    device = torch.device("cuda")
 
     encoder_params = Parameters(configs['enc_batch_norm'], configs['enc_dropout'], configs['enc_act'])
     decoder_params = Parameters(configs['dec_batch_norm'], configs['dec_dropout'], configs['dec_act'])

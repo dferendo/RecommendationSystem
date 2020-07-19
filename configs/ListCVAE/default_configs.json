@@ -1,8 +1,8 @@
 {
-  "experiment_name": "listcvae_test/",
+  "experiment_name": "listcvae_diverse/",
   "seed": 0,
   "is_training": false,
-  "use_gpu": false,
+  "use_gpu": true,
   "save_model": false,
   "continue_from_epoch": -1,
 
