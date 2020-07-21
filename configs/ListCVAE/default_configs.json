@@ -1,5 +1,5 @@
 {
-  "experiment_name": "listcvae_diverse/",
+  "experiment_name": "listcvae_diverse_no_genres/",
   "seed": 0,
   "is_training": true,
   "use_gpu": true,
@@ -29,7 +29,7 @@
   "beta_2": 0.999,
   "weight_decay": 0,
   "gdpp_weight": 0,
-  "diverse": true,
+  "diverse": false,
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
