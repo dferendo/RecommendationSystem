@@ -101,7 +101,7 @@ def experiments_run():
 
         predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
 
-        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates)
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, movies_categories)
         diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
 
         print(precision, hr, cc)
