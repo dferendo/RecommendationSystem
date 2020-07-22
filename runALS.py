@@ -3,7 +3,7 @@ from utils.data_provider import split_dataset
 from utils.reset_seed import set_seeds
 from utils.experiment_builder import ExperimentBuilderNN
 from dataloaders.TestDataLoader import UserIndexTestDataLoader
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
+from utils.evaluation_metrics import precision_hit_coverage_ratio, movie_diversity
 import numpy as np
 
 import torch
@@ -94,10 +94,10 @@ def experiments_run():
 
         predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
 
-        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates)
         diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
 
-        print(precision, hr)
+        print(precision, hr, cc)
         print(diversity)
 
 

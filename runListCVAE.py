@@ -35,6 +35,8 @@ def experiments_run():
                      configs['encoder_dims'], configs['latent_dims'], configs['decoder_dims'], configs['prior_dims'], device,
                      encoder_params, decoder_params, prior_params, gdpp_active)
 
+    print(model)
+
     experiment_builder = ExperimentBuilderCVAE(model, train_loader, test_loader, data_configs['number_of_movies'],
                                                movie_categories,
                                                configs)
