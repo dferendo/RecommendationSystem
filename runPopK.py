@@ -28,7 +28,8 @@ def experiments_run():
         print(f'Test for {slate_size}')
         model = PopularKSlateGeneration(slate_size, df_train, df_train_matrix, configs['test_batch_size'])
 
-        experiment_builder = ExperimentBuilderPopK(model, test_loader, len(df_train_matrix.columns), configs)
+        experiment_builder = ExperimentBuilderPopK(model, test_loader, len(df_train_matrix.columns), movies_categories,
+                                                   configs)
         experiment_builder.run_experiment()
 
 

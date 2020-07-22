@@ -31,7 +31,8 @@ def experiments_run():
         print(f'Test for {slate_size}')
         model = RandomSlateGeneration(slate_size, all_movies, configs['test_batch_size'])
 
-        experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), configs)
+        experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), movies_categories,
+                                                     configs)
         experiment_builder.run_experiment()
 
 

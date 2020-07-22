@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
+from utils.evaluation_metrics import precision_hit_coverage_ratio, movie_diversity
 
 import numpy as np
 import tqdm
@@ -11,11 +11,12 @@ from abc import ABC, abstractmethod
 
 
 class ExperimentBuilderPlain(nn.Module, ABC):
-    def __init__(self, model, evaluation_loader, number_of_movies, configs):
+    def __init__(self, model, evaluation_loader, number_of_movies, movies_categories, configs):
         super(ExperimentBuilderPlain, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
+        self.movie_categories = movies_categories
 
         self.model = model
         self.model.reset_parameters()
@@ -74,18 +75,19 @@ class ExperimentBuilderPlain(nn.Module, ABC):
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
-        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)
 
-        return precision, hr, diversity
+        return precision, hr, cc, diversity
 
     def run_experiment(self):
-        precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
+        precision_mean, hr_mean, cc, diversity = self.run_evaluation_epoch()
 
         self.writer.add_scalar('Precision', precision_mean)
         self.writer.add_scalar('Hit Ratio', hr_mean)
         self.writer.add_scalar('Diversity', diversity)
+        self.writer.add_scalar('CC', cc)
 
-        print(f'HR: {hr_mean}, Precision: {precision_mean}, Diversity: {diversity}')
+        print(f'{precision_mean},{hr_mean},{diversity},{cc}')
 
         self.writer.flush()
         self.writer.close()
