@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
+from utils.evaluation_metrics import precision_hit_coverage_ratio, movie_diversity
 from utils.storage import save_statistics
 
 import numpy as np
@@ -175,7 +175,7 @@ class ExperimentBuilderNN(nn.Module, ABC):
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
-        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates)
 
         return precision, hr, diversity
 

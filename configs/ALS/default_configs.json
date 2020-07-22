@@ -1,6 +1,6 @@
 {
   "experiment_name": "ALS/",
-  "seed": 954358,
+  "seed": 0,
   "is_training": false,
   "use_gpu": true,
   "save_model": false,
@@ -16,7 +16,7 @@
 
   "__comment": "Model Parameters",
   "num_of_epochs": 50,
-  "slate_size": [25, 50, 100],
+  "slate_size": [3, 4, 5, 6, 7, 8, 9, 10],
   "train_batch_size": 4096,
   "test_batch_size": 128,
   "neg_sample_per_training_example": 5,
