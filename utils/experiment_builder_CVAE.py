@@ -283,6 +283,10 @@ class ExperimentBuilderCVAE(nn.Module):
 
         return precision, hr, diversity, cc
 
+    def save_model(self, model_save_dir, model_save_name, model_idx, state):
+        state['network'] = self.state_dict()
+        torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
+
     def run_experiment(self):
         total_losses = {"loss": [], "precision": [], "hr": [], "F1 Score": [],
                         "diversity": [], "CC": [], "curr_epoch": []}
