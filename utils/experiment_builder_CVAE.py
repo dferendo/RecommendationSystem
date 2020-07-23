@@ -290,11 +290,11 @@ class ExperimentBuilderCVAE(nn.Module):
         assert self.configs['type'] in ['linear', 'sigmoid', 'cosine', 'constant']
 
         if self.configs['type'] == 'linear':
-            self.KL_weight = cycle_linear(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
+            self.KL_weight = cycle_linear(0.001, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
         elif self.configs['type'] == 'sigmoid':
-            self.KL_weight = cycle_sigmoid(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
+            self.KL_weight = cycle_sigmoid(0.001, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
         elif self.configs['type'] == 'cosine':
-            self.KL_weight = cycle_cosine(0.0, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
+            self.KL_weight = cycle_cosine(0.001, self.configs['max_beta'], self.configs['num_of_epochs'], self.configs['cycles'], self.configs['ratio'])
         else:
             self.KL_weight = np.full(self.configs['num_of_epochs'], self.configs['max_beta'])
 
