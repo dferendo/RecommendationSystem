@@ -168,6 +168,9 @@ class ExperimentBuilderCVAE(nn.Module):
             self.starting_epoch = 0
             self.state = dict()
 
+        if configs['load_model']:
+            self.best_val_model_idx, self.best_val_model_precision, self.state = self.load_model_for_testing(configs['load_model_location'])
+
     def set_device(self, use_gpu):
         if torch.cuda.device_count() > 1 and use_gpu:
             self.device = torch.cuda.current_device()
@@ -237,7 +240,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
         return np.mean(all_losses)
 
-    def run_evaluation_epoch(self, epoch_idx):
+    def run_evaluation_epoch(self):
         self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
@@ -287,6 +290,16 @@ class ExperimentBuilderCVAE(nn.Module):
         state['network'] = self.state_dict()
         torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
 
+    def load_model(self, model_save_dir, model_save_name, model_idx):
+        state = torch.load(f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
+        self.load_state_dict(state_dict=state['network'])
+        return state['best_val_model_idx'], state['best_val_model_acc'], state
+
+    def load_model_for_testing(self, model_location):
+        state = torch.load(f=model_location)
+        self.load_state_dict(state_dict=state['network'])
+        return state['best_val_model_idx'], state['best_val_model_acc'], state
+
     def run_experiment(self):
         total_losses = {"loss": [], "precision": [], "hr": [], "F1 Score": [],
                         "diversity": [], "CC": [], "curr_epoch": []}
@@ -305,7 +318,7 @@ class ExperimentBuilderCVAE(nn.Module):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
             average_loss = self.run_training_epoch(epoch_idx)
-            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(epoch_idx)
+            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch()
 
             f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
 
@@ -345,3 +358,9 @@ class ExperimentBuilderCVAE(nn.Module):
 
         self.writer.flush()
         self.writer.close()
+
+    def run_evaluation(self):
+        precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch()
+        f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
+
+        print(f'HR: {hr_mean}, Precision: {precision_mean}, F1: {f1_score}, Diversity: {diversity}, CC: {cc}')

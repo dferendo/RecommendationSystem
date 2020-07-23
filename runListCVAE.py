@@ -40,7 +40,11 @@ def experiments_run():
     experiment_builder = ExperimentBuilderCVAE(model, train_loader, test_loader, data_configs['number_of_movies'],
                                                movie_categories,
                                                configs)
-    experiment_builder.run_experiment()
+
+    if configs['load_model']:
+        experiment_builder.run_evaluation()
+    else:
+        experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':
