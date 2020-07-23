@@ -293,12 +293,12 @@ class ExperimentBuilderCVAE(nn.Module):
     def load_model(self, model_save_dir, model_save_name, model_idx):
         state = torch.load(f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
         self.load_state_dict(state_dict=state['network'])
-        return state['best_val_model_idx'], state['best_val_model_acc'], state
+        return state['best_val_model_idx'], state['best_val_model_precision'], state
 
     def load_model_for_testing(self, model_location):
         state = torch.load(f=model_location)
         self.load_state_dict(state_dict=state['network'])
-        return state['best_val_model_idx'], state['best_val_model_acc'], state
+        return state['best_val_model_idx'], state['best_val_model_precision'], state
 
     def run_experiment(self):
         total_losses = {"loss": [], "precision": [], "hr": [], "F1 Score": [],
