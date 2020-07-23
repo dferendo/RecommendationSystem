@@ -14,8 +14,6 @@ def experiments_run():
 
     train_loader, test_loader, data_configs, movie_categories = get_data_loaders(configs, False)
 
-    print(movie_categories.columns)
-
     if configs['diverse']:
         # One dims maximize utility, one dim genres maximization
         response_vector_dims = 2
