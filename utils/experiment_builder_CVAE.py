@@ -240,7 +240,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
         return np.mean(all_losses)
 
-    def run_evaluation_epoch(self):
+    def run_evaluation_epoch(self, genre_idx):
         self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
@@ -256,7 +256,7 @@ class ExperimentBuilderCVAE(nn.Module):
                     response_vector = click_vector.sum(dim=1).unsqueeze(dim=1)
 
                     if self.configs['diverse']:
-                        genre_vector = torch.full((padded_interactions.shape[0], 1), self.movie_categories.shape[1],
+                        genre_vector = torch.full((padded_interactions.shape[0], 1), genre_idx,
                                                   device=self.device, dtype=torch.float32)
                         response_vector = torch.cat((response_vector, genre_vector), dim=1)
 
@@ -360,7 +360,10 @@ class ExperimentBuilderCVAE(nn.Module):
         self.writer.close()
 
     def run_evaluation(self):
-        precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch()
-        f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
+        print(f'Precision,HR,F1,diversity,CC')
 
-        print(f'HR: {hr_mean}, Precision: {precision_mean}, F1: {f1_score}, Diversity: {diversity}, CC: {cc}')
+        for idx in range(0, self.movie_categories.shape[1]):
+            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(idx)
+            f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
+
+            print(f'{precision_mean},{hr_mean},{f1_score},{diversity},{cc}')
