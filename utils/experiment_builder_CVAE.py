@@ -318,7 +318,7 @@ class ExperimentBuilderCVAE(nn.Module):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
             average_loss = self.run_training_epoch(epoch_idx)
-            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch()
+            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(self.movie_categories.shape[1])
 
             f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
 
