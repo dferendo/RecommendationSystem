@@ -363,6 +363,7 @@ class ExperimentBuilderCVAE(nn.Module):
         print(f'Precision,HR,F1,diversity,CC')
 
         for idx in range(0, self.movie_categories.shape[1]):
+            print(idx)
             precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(idx)
             f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
 
