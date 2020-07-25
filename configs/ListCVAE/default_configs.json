@@ -1,11 +1,11 @@
 {
-  "experiment_name": "listcvae_diverse_no_genres/",
+  "experiment_name": "listcvae_diverse_saved_models_different_seeds/",
   "seed": 0,
-  "is_training": true,
+  "is_training": false,
   "use_gpu": true,
-  "save_model": false,
+  "save_model": true,
   "continue_from_epoch": -1,
-  "load_model": true,
+  "load_model": false,
   "load_model_location": "",
 
   "__comment": "Dataset Parameters",
@@ -21,7 +21,7 @@
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 50,
+  "num_of_epochs": 25,
   "train_batch_size": 64,
   "test_batch_size": 5,
   "embed_dims": 32,
