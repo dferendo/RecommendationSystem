@@ -5,7 +5,7 @@
   "use_gpu": true,
   "save_model": true,
   "continue_from_epoch": -1,
-  "load_model": false,
+  "load_model": true,
   "load_model_location": "",
 
   "__comment": "Dataset Parameters",
