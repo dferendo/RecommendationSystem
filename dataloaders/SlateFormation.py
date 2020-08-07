@@ -31,8 +31,6 @@ class SlateFormationDataLoader(Dataset):
 
         self.genre_counts = self.slate_formations['Genres'].values
 
-        print(np.unique(self.genre_counts, return_counts=True))
-
         # Needed for padding so that every user has the same amount of interactions
         self.interactions = self.slate_formations['User Interactions'].str.split('|')
 
