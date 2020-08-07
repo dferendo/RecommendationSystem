@@ -102,8 +102,29 @@ def slate_formation_diverse(slate_size, negative_samples_amount, user_interactio
     positive_samples_amount = slate_size - negative_samples_amount
 
     if positive_samples_amount != 0:
-        positive_samples = np.random.choice(np.arange(len(user_interactions)), size=positive_samples_amount, replace=False)
-        positive_samples_movies = [user_interactions[positive_sample] for positive_sample in positive_samples]
+        genre_list = []
+
+        for user_interaction in user_interactions:
+            genre_list.append(set(np.nonzero(movies_categories[user_movie_matrix.columns.get_loc(user_interaction)])[0]))
+
+        positive_samples_movies = []
+        current_genres_in_slate = set()
+
+        for _ in range(positive_samples_amount):
+            current_largest_genre_increase = -1
+            current_highest_index = -1
+            genre_to_add = []
+
+            for idx, genre_movie in enumerate(genre_list):
+                current_genre_increase = len(genre_movie.difference(current_genres_in_slate))
+
+                if current_genre_increase > current_largest_genre_increase:
+                    current_highest_index = idx
+                    current_largest_genre_increase = current_genre_increase
+                    genre_to_add = genre_movie
+
+            positive_samples_movies.append(user_interactions[current_highest_index])
+            current_genres_in_slate.update(genre_to_add)
 
         response_vector[:positive_samples_amount] = 1
 
