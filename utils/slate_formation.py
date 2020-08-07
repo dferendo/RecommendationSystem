@@ -94,6 +94,51 @@ def slate_formation_random(slate_size, negative_samples_amount, user_interaction
     return all_user_interactions_indexes, slate_movies, response_vector
 
 
+def slate_formation_diverse(slate_size, negative_samples_amount, user_interactions, user_movie_matrix,
+                            movies_with_no_interactions_with_user, movies_categories):
+    slate_movies = []
+    response_vector = np.zeros(slate_size, dtype=np.int32)
+
+    positive_samples_amount = slate_size - negative_samples_amount
+
+    if positive_samples_amount != 0:
+        positive_samples = np.random.choice(np.arange(len(user_interactions)), size=positive_samples_amount, replace=False)
+        positive_samples_movies = [user_interactions[positive_sample] for positive_sample in positive_samples]
+
+        response_vector[:positive_samples_amount] = 1
+
+        # Convert to indices
+        positive_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                    positive_samples_movies))
+
+        slate_movies.extend(positive_indexes)
+
+        all_user_interactions = list(set(user_interactions).difference(set(positive_samples_movies)))
+
+        all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                                 all_user_interactions))
+    else:
+        # The *or None* will return the whole list when we have 0 positive samples
+        all_user_interactions = user_interactions[:-positive_samples_amount or None]
+
+        all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                                 all_user_interactions))
+
+    if negative_samples_amount != 0:
+        negative_samples = np.random.choice(movies_with_no_interactions_with_user,
+                                            size=negative_samples_amount)
+
+        # Convert to indices
+        negative_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                    negative_samples))
+
+        slate_movies.extend(negative_indexes)
+
+    response_vector = response_vector.tolist()
+
+    return all_user_interactions_indexes, slate_movies, response_vector
+
+
 def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates,
                              save_location, movies_categories, dataset_type):
     """
@@ -144,6 +189,15 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
                                                                                                           user_interactions,
                                                                                                           user_movie_matrix,
                                                                                                           movies_with_no_interactions_with_user)
+                elif dataset_type == 'diverse':
+                    all_user_interactions_indexes, slate_movies, response_vector = slate_formation_diverse(slate_size,
+                                                                                                          negative_samples_amount,
+                                                                                                          user_interactions,
+                                                                                                          user_movie_matrix,
+                                                                                                          movies_with_no_interactions_with_user,
+                                                                                                          movies_categories)
+                else:
+                    raise Exception('Dataset type is not valid')
 
                 # Shuffling the negative values
                 shuffled = list(zip(slate_movies, response_vector))
@@ -233,7 +287,7 @@ def get_data_loaders(configs, one_hot):
 
     # Check if we have the slates for training
     if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location) \
-            and os.path.isfile(genre_matrix_location) and os.path.isfile(genre_matrix_location):
+            and os.path.isfile(genre_matrix_location):
         slate_formation = pd.read_csv(slate_formation_file_location)
         test_slate_formation = pd.read_csv(slate_formation_test_file_location)
 
