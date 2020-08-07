@@ -8,6 +8,7 @@ import tqdm
 import sys
 
 from abc import ABC, abstractmethod
+import os
 
 
 class ExperimentBuilderPlain(nn.Module, ABC):
@@ -26,6 +27,11 @@ class ExperimentBuilderPlain(nn.Module, ABC):
         # Saving runs
         self.experiment_folder = "runs/{0}".format(configs['experiment_name'])
         self.writer = SummaryWriter(self.experiment_folder)
+
+        self.predicted_slates = os.path.abspath(os.path.join(self.experiment_folder, "predicted_slate"))
+
+        if not os.path.exists(self.predicted_slates):
+            os.mkdir(self.predicted_slates)
 
     @staticmethod
     def print_parameters(named_parameters):
@@ -73,6 +79,12 @@ class ExperimentBuilderPlain(nn.Module, ABC):
 
         predicted_slates = torch.cat(predicted_slates, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
+
+        path_to_save = os.path.join(self.predicted_slates, f'0.txt')
+
+        with open(path_to_save, 'w') as f:
+            for item in predicted_slates:
+                f.write(f'{item}\n')
 
         predicted_slates = predicted_slates.cpu()
         precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)

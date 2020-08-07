@@ -1,7 +1,7 @@
 {
-  "experiment_name": "listcvae_diverse_saved_models_different_seeds/",
+  "experiment_name": "listcvae_random_dataset/",
   "seed": 0,
-  "is_training": false,
+  "is_training": true,
   "use_gpu": true,
   "save_model": true,
   "continue_from_epoch": -1,
@@ -10,6 +10,7 @@
 
   "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-25m/",
+  "slate_type": "random",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -17,8 +18,8 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Slate Generation Hyper Parameters",
-  "slate_size": 6,
-  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5, 6],
+  "slate_size": 5,
+  "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5],
 
   "__comment": "Model Parameters All",
   "num_of_epochs": 25,

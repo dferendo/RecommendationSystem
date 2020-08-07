@@ -10,12 +10,97 @@ from torch.utils.data import DataLoader
 import json
 
 
+def slate_formation_future(slate_size, negative_samples_amount, user_interactions, user_movie_matrix,
+                           movies_with_no_interactions_with_user):
+    slate_movies = []
+    response_vector = np.zeros(slate_size, dtype=np.int32)
+
+    positive_samples_amount = slate_size - negative_samples_amount
+
+    # The *or None* will return the whole list when we have 0 positive samples
+    all_user_interactions = user_interactions[:-positive_samples_amount or None]
+
+    all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                             all_user_interactions))
+
+    if positive_samples_amount != 0:
+        positive_samples = user_interactions[-positive_samples_amount:]
+
+        response_vector[:positive_samples_amount] = 1
+
+        # Convert to indices
+        positive_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                    positive_samples))
+
+        slate_movies.extend(positive_indexes)
+
+    if negative_samples_amount != 0:
+        negative_samples = np.random.choice(movies_with_no_interactions_with_user,
+                                            size=negative_samples_amount)
+
+        # Convert to indices
+        negative_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                    negative_samples))
+
+        slate_movies.extend(negative_indexes)
+
+    response_vector = response_vector.tolist()
+
+    return all_user_interactions_indexes, slate_movies, response_vector
+
+
+def slate_formation_random(slate_size, negative_samples_amount, user_interactions, user_movie_matrix,
+                           movies_with_no_interactions_with_user):
+    slate_movies = []
+    response_vector = np.zeros(slate_size, dtype=np.int32)
+
+    positive_samples_amount = slate_size - negative_samples_amount
+
+    if positive_samples_amount != 0:
+        positive_samples = np.random.choice(np.arange(len(user_interactions)), size=positive_samples_amount, replace=False)
+        positive_samples_movies = [user_interactions[positive_sample] for positive_sample in positive_samples]
+
+        response_vector[:positive_samples_amount] = 1
+
+        # Convert to indices
+        positive_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                    positive_samples_movies))
+
+        slate_movies.extend(positive_indexes)
+
+        all_user_interactions = list(set(user_interactions).difference(set(positive_samples_movies)))
+
+        all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                                 all_user_interactions))
+    else:
+        # The *or None* will return the whole list when we have 0 positive samples
+        all_user_interactions = user_interactions[:-positive_samples_amount or None]
+
+        all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                                 all_user_interactions))
+
+    if negative_samples_amount != 0:
+        negative_samples = np.random.choice(movies_with_no_interactions_with_user,
+                                            size=negative_samples_amount)
+
+        # Convert to indices
+        negative_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
+                                    negative_samples))
+
+        slate_movies.extend(negative_indexes)
+
+    response_vector = response_vector.tolist()
+
+    return all_user_interactions_indexes, slate_movies, response_vector
+
+
 def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, negative_sampling_for_slates,
-                             save_location, movies_categories):
+                             save_location, movies_categories, dataset_type):
     """
     Return the slates. Each slate has a user_id followed by a slate containing
     *slate_size* movie_ids, *slate_size* response vector (whether the user had an interaction or not) and the user
     interactions. All values are in index form (no ids).
+    :param dataset_type:
     :param row_interactions: All the interactions between users and movies. Each value contains user_id, movie_id,
     rating and timestamp.
     :param user_movie_matrix: [user_id, movie_id] Sparse DataFrame matrix where user_id are the rows and movie_id
@@ -47,39 +132,18 @@ def generate_slate_formation(row_interactions, user_movie_matrix, slate_size, ne
             for negative_samples_amount in negative_sampling_for_slates:
                 assert negative_samples_amount <= slate_size
 
-                slate_movies = []
-                response_vector = np.zeros(slate_size, dtype=np.int32)
-
-                positive_samples_amount = slate_size - negative_samples_amount
-
-                # The *or None* will return the whole list when we have 0 positive samples
-                all_user_interactions = user_interactions[:-positive_samples_amount or None]
-
-                all_user_interactions_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
-                                                         all_user_interactions))
-
-                if positive_samples_amount != 0:
-                    positive_samples = user_interactions[-positive_samples_amount:]
-
-                    response_vector[:positive_samples_amount] = 1
-
-                    # Convert to indices
-                    positive_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
-                                                positive_samples))
-
-                    slate_movies.extend(positive_indexes)
-
-                if negative_samples_amount != 0:
-                    negative_samples = np.random.choice(movies_with_no_interactions_with_user,
-                                                        size=negative_samples_amount)
-
-                    # Convert to indices
-                    negative_indexes = list(map(lambda movie_id: user_movie_matrix.columns.get_loc(movie_id),
-                                                negative_samples))
-
-                    slate_movies.extend(negative_indexes)
-
-                response_vector = response_vector.tolist()
+                if dataset_type == 'future':
+                    all_user_interactions_indexes, slate_movies, response_vector = slate_formation_future(slate_size,
+                                                                                                          negative_samples_amount,
+                                                                                                          user_interactions,
+                                                                                                          user_movie_matrix,
+                                                                                                          movies_with_no_interactions_with_user)
+                elif dataset_type == 'random':
+                    all_user_interactions_indexes, slate_movies, response_vector = slate_formation_random(slate_size,
+                                                                                                          negative_samples_amount,
+                                                                                                          user_interactions,
+                                                                                                          user_movie_matrix,
+                                                                                                          movies_with_no_interactions_with_user)
 
                 # Shuffling the negative values
                 shuffled = list(zip(slate_movies, response_vector))
@@ -139,30 +203,37 @@ def generate_test_slate_formation(row_interactions, train_row_interactions, user
 
 
 def get_data_loaders(configs, one_hot):
-    slate_formation_file_name = 'sf_{}_{}_{}.csv'.format(configs['slate_size'],
-                                                         '-'.join(
-                                                             str(e) for e in configs['negative_sampling_for_slates']),
-                                                         configs['is_training'])
+    if not configs['slate_type'] in ['random', 'future', 'diverse']:
+        raise Exception('Slate type not found.')
+
+    slate_formation_file_name = 'sf_{}_{}_{}_{}.csv'.format(configs['slate_size'],
+                                                         '-'.join(str(e) for e in configs['negative_sampling_for_slates']),
+                                                         configs['is_training'], configs['slate_type'])
     slate_formation_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
 
-    slate_formation_file_name = 'sf_{}_{}_{}_test.csv'.format(configs['slate_size'],
+    slate_formation_file_name = 'sf_{}_{}_{}_{}_test.csv'.format(configs['slate_size'],
                                                               '-'.join(str(e) for e in
                                                                        configs['negative_sampling_for_slates']),
-                                                              configs['is_training'])
+                                                              configs['is_training'], configs['slate_type'])
 
     slate_formation_test_file_location = os.path.join(configs['data_location'], slate_formation_file_name)
 
-    slate_formation_file_name = 'sf_{}_{}_{}_configs.csv'.format(configs['slate_size'],
+    slate_formation_file_name = 'sf_{}_{}_{}_{}_configs.csv'.format(configs['slate_size'],
                                                                  '-'.join(str(e) for e in
                                                                           configs['negative_sampling_for_slates']),
-                                                                 configs['is_training'])
+                                                                 configs['is_training'], configs['slate_type'])
     slate_formation_file_location_configs = os.path.join(configs['data_location'], slate_formation_file_name)
 
-    genre_matrix_location = os.path.join(configs['data_location'], 'genre_matrix.npy')
+    genre_matrix_location = 'sf_{}_{}_{}_{}_genre_matrix.npy'.format(configs['slate_size'],
+                                                                 '-'.join(str(e) for e in
+                                                                          configs['negative_sampling_for_slates']),
+                                                                 configs['is_training'], configs['slate_type'])
+
+    genre_matrix_location = os.path.join(configs['data_location'], genre_matrix_location)
 
     # Check if we have the slates for training
     if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location) \
-            and os.path.isfile(genre_matrix_location):
+            and os.path.isfile(genre_matrix_location) and os.path.isfile(genre_matrix_location):
         slate_formation = pd.read_csv(slate_formation_file_location)
         test_slate_formation = pd.read_csv(slate_formation_test_file_location)
 
@@ -176,7 +247,7 @@ def get_data_loaders(configs, one_hot):
         slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
                                                    configs['negative_sampling_for_slates'],
                                                    slate_formation_file_location,
-                                                   movies_categories)
+                                                   movies_categories, configs['slate_type'])
 
         test_slate_formation = generate_test_slate_formation(df_test, df_train, df_train_matrix,
                                                              slate_formation_test_file_location)
