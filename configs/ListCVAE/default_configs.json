@@ -1,5 +1,5 @@
 {
-  "experiment_name": "listcvae_random_dataset/",
+  "experiment_name": "listcvae_diverse_dataset/",
   "seed": 0,
   "is_training": true,
   "use_gpu": true,
@@ -10,7 +10,7 @@
 
   "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-25m/",
-  "slate_type": "random",
+  "slate_type": "diverse",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
