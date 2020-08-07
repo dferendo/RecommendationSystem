@@ -28,10 +28,9 @@
 #             print(f"{a},{b},{c}")
 
 
-for bs in [64, 128, 256]:
-    for embed in [16, 32, 64]:
+for bs in [64, 128]:
+    for embed in [16, 32]:
         for ld in [16, 32]:
             for lr in [0.001, 0.0005]:
-                for dims in ["\"[256,256]\"", "\"[1024,1024]\""]:
-                    for prior_dims in ["\"[32,32]\""]:
-                        print(f"{bs},{embed},{ld},{lr},{dims},{dims},{prior_dims}")
+                for enc_dropout in [0.0, 0.1, 0.3]:
+                    print(f"{bs},{embed},{ld},{lr},{enc_dropout},{enc_dropout}")
