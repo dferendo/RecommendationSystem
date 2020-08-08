@@ -1,13 +1,13 @@
 {
-  "experiment_name": "listcvae_print_years/",
+  "experiment_name": "listcvae_different_dataset/",
   "seed": 0,
   "is_training": false,
   "use_gpu": true,
-  "save_model": false,
+  "save_model": true,
   "continue_from_epoch": -1,
   "load_model": false,
   "load_model_location": "",
-  "print_years": true,
+  "print_years": false,
 
   "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-25m/",
@@ -33,7 +33,7 @@
   "beta_2": 0.999,
   "weight_decay": 0,
   "gdpp_weight": 0,
-  "diverse": false,
+  "diverse": true,
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
