@@ -7,7 +7,12 @@ import re
 
 
 def split_it(year):
-    return re.findall('(\d+)', year)[-1]
+    all_regex = re.findall('(\d+)', year)
+
+    if len(all_regex) == 0:
+        print(year)
+
+    return all_regex[-1]
 
 
 def get_sparse_df(df, all_movies_in_train):
