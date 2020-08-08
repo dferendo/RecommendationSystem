@@ -295,7 +295,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
             with open(path_to_save, 'w') as f:
                 for key, value in years_dict.items():
-                    f.write(f"listcvae,{self.configs['seed']},{key},{value}")
+                    f.write(f"listcvae,{self.configs['seed']},{key},{value}\n")
 
         # path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
 
