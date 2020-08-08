@@ -66,7 +66,7 @@ def experiments_run():
     print(configs)
     set_seeds(configs['seed'])
 
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, titles = split_dataset(configs)
 
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix, df_train_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
@@ -100,6 +100,19 @@ def experiments_run():
             ground_truth_slates.extend(grouped_ground_truth)
 
         predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
+
+        # Count years
+        years_dict = {}
+        all_years = np.unique(titles)
+
+        for year in all_years:
+            years_dict[year] = 0
+
+        for predicted_slate in list(predicted_slates):
+            for predicted_movie in predicted_slate:
+                years_dict[titles[predicted_movie]] += 1
+
+        print(years_dict)
 
         precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, movies_categories)
         diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
