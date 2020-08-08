@@ -13,6 +13,7 @@ import math
 import gc
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import json
 
 
 def plot_grad_flow(named_parameters):
@@ -241,7 +242,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
         return np.mean(all_losses)
 
-    def run_evaluation_epoch(self, genre_idx):
+    def run_evaluation_epoch(self, genre_idx, epoch_idx):
         self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
@@ -290,8 +291,11 @@ class ExperimentBuilderCVAE(nn.Module):
                 for predicted_movie in predicted_slate:
                     years_dict[self.titles[predicted_movie]] += 1
 
-            print(years_dict)
-            
+            path_to_save = os.path.join(self.predicted_slates, f'years_{epoch_idx}.txt')
+
+            with open(path_to_save, 'w') as f:
+                f.write(json.dumps(years_dict))
+
         # path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
 
         # with open(path_to_save, 'w') as f:
@@ -332,7 +336,7 @@ class ExperimentBuilderCVAE(nn.Module):
         for epoch_idx in range(self.starting_epoch, self.configs['num_of_epochs']):
             print(f"Epoch: {epoch_idx}")
             average_loss = self.run_training_epoch(epoch_idx)
-            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(self.movie_categories.shape[1])
+            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(self.movie_categories.shape[1], epoch_idx)
 
             f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
 
@@ -378,7 +382,7 @@ class ExperimentBuilderCVAE(nn.Module):
 
         for idx in range(0, self.movie_categories.shape[1]):
             print(idx)
-            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(idx)
+            precision_mean, hr_mean, diversity, cc = self.run_evaluation_epoch(idx, 0)
             f1_score = 2 * (precision_mean * hr_mean) / (precision_mean + hr_mean)
 
             print(f'{precision_mean},{hr_mean},{f1_score},{diversity},{cc}')
