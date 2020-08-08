@@ -9,7 +9,7 @@
   "load_model_location": "",
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-25m/",
+  "data_location": "./dataset/ml-1m/",
   "slate_type": "diverse",
   "implicit_rating": 0,
   "validation_set_size": 0.15,

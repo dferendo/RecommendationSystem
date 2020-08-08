@@ -2,6 +2,7 @@ from utils.arg_parser import extract_args_from_json
 from utils.reset_seed import set_seeds
 from models.ListCVAE import ListCVAE, Parameters
 from utils.slate_formation import get_data_loaders
+import numpy as np
 
 import torch
 from utils.experiment_builder_CVAE import ExperimentBuilderCVAE
@@ -12,7 +13,7 @@ def experiments_run():
     print(configs)
     set_seeds(configs['seed'])
 
-    train_loader, test_loader, data_configs, movie_categories = get_data_loaders(configs, False)
+    train_loader, test_loader, data_configs, movie_categories, titles = get_data_loaders(configs, False)
 
     if configs['diverse']:
         # One dims maximize utility, one dim genres maximization
@@ -38,7 +39,7 @@ def experiments_run():
     print(model)
 
     experiment_builder = ExperimentBuilderCVAE(model, train_loader, test_loader, data_configs['number_of_movies'],
-                                               movie_categories,
+                                               movie_categories, titles,
                                                configs)
 
     if configs['load_model']:

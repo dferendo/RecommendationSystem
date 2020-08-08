@@ -32,10 +32,12 @@ def load_movie_categories(configs, all_movies_in_train):
     movies_categories_location = os.path.join(configs['data_location'], 'movies.csv')
 
     # Loading
-    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'genres': np.str})
+    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'title': np.str, 'genres': np.str})
+    df_titles = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'title': np.str})
 
     # A movie can have multiple genres and each genre is seperate by a '|'
     df_all['genres'] = df_all['genres'].str.split('|')
+    df_titles['title'] = df_titles['title'].str[-5:-1]
 
     # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
     df_all = df_all.explode('genres')
@@ -45,6 +47,7 @@ def load_movie_categories(configs, all_movies_in_train):
 
     # Keep only the movies that are found in the training examples so that the indexes match
     df_all = df_all[df_all['movieId'].isin(all_movies_in_train)]
+    df_titles = df_titles[df_titles['movieId'].isin(all_movies_in_train)]
 
     # Convert to a 2-d matrix
     movies_category = CategoricalDtype(sorted(all_movies_in_train), ordered=True)
@@ -63,7 +66,7 @@ def load_movie_categories(configs, all_movies_in_train):
     if '(no genres listed)' in sparse_df:
         sparse_df = sparse_df.drop('(no genres listed)', 1)
 
-    return sparse_df.values
+    return sparse_df.values, df_titles['title'].values
 
 
 def split_dataset(configs):
@@ -116,7 +119,7 @@ def split_dataset(configs):
     # This is needed so that the train/test will have the same amount of columns
     all_movies_in_train = df_train['movieId'].unique()
 
-    movies_categories = load_movie_categories(configs, all_movies_in_train)
+    movies_categories, titles = load_movie_categories(configs, all_movies_in_train)
 
     return df_train, df_test, get_sparse_df(df_train, all_movies_in_train), \
-           get_sparse_df(df_test, all_movies_in_train), movies_categories
+           get_sparse_df(df_test, all_movies_in_train), movies_categories, titles.astype(np.int32)
