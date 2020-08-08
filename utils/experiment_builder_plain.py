@@ -12,12 +12,13 @@ import os
 
 
 class ExperimentBuilderPlain(nn.Module, ABC):
-    def __init__(self, model, evaluation_loader, number_of_movies, movies_categories, configs):
+    def __init__(self, model, evaluation_loader, number_of_movies, movies_categories, titles, configs):
         super(ExperimentBuilderPlain, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
         self.movie_categories = movies_categories
+        self.titles = titles
 
         self.model = model
         self.model.reset_parameters()
@@ -88,6 +89,19 @@ class ExperimentBuilderPlain(nn.Module, ABC):
 
         predicted_slates = predicted_slates.cpu()
         precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)
+
+        # Count years
+        years_dict = {}
+        all_years = np.unique(self.titles)
+
+        for year in all_years:
+            years_dict[year] = 0
+
+        for predicted_slate in list(predicted_slates):
+            for predicted_movie in predicted_slate:
+                years_dict[self.titles[predicted_movie]] += 1
+
+        print(years_dict)
 
         return precision, hr, cc, diversity
 

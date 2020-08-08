@@ -18,7 +18,7 @@ def experiments_run():
     configs = extract_args_from_json()
     print(configs)
     set_seeds(configs['seed'])
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, titles = split_dataset(configs)
 
     test_dataset = NoAdditionalInfoTestDataLoader(df_test, df_test_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'],
@@ -32,7 +32,7 @@ def experiments_run():
         model = RandomSlateGeneration(slate_size, all_movies, configs['test_batch_size'])
 
         experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), movies_categories,
-                                                     configs)
+                                                     titles, configs)
         experiment_builder.run_experiment()
 
 
