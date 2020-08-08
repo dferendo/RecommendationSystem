@@ -3,6 +3,11 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from pandas.api.types import CategoricalDtype
 import os
+import re
+
+
+def split_it(year):
+    return re.findall('(\d+)', year)[-1]
 
 
 def get_sparse_df(df, all_movies_in_train):
@@ -37,7 +42,7 @@ def load_movie_categories(configs, all_movies_in_train):
 
     # A movie can have multiple genres and each genre is seperate by a '|'
     df_all['genres'] = df_all['genres'].str.split('|')
-    df_titles['title'] = df_titles['title'].str[-5:-1]
+    df_titles['title'] = df_titles['title'].apply(split_it)
 
     # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
     df_all = df_all.explode('genres')
