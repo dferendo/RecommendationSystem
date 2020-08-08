@@ -20,7 +20,8 @@ class GreedyMLPExperimentBuilder(ExperimentBuilderNN):
     criterion = torch.nn.BCELoss()
 
     def pre_epoch_init_function(self):
-        self.train_loader.dataset.negative_sampling()
+        # self.train_loader.dataset.negative_sampling()
+        pass
 
     def train_iteration(self, idx, values_to_unpack):
         user_indexes = values_to_unpack[0].to(self.device)

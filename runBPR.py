@@ -5,10 +5,13 @@ from dataloaders.TestDataLoader import UserIndexTestDataLoader
 from models import BayesianPR
 from dataloaders.PairwiseDataLoader import PairwiseDataLoader
 from utils.experiment_builder import ExperimentBuilderNN
+from utils.evaluation_metrics import precision_hit_coverage_ratio, movie_diversity
 
 from torch.utils.data import DataLoader
 import torch
 import numpy as np
+import implicit
+from scipy import sparse
 
 
 class BPRExperimentBuilder(ExperimentBuilderNN):
@@ -65,22 +68,44 @@ def experiments_run():
 
     df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
 
-    train_dataset = PairwiseDataLoader(df_train, df_train_matrix, configs['neg_sample_per_training_example'])
-
-    train_loader = DataLoader(train_dataset, batch_size=configs['train_batch_size'], shuffle=True, num_workers=4,
-                              drop_last=False)
-
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix, df_train_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
                              drop_last=False)
 
-    total_movies = len(df_train_matrix.columns)
-    total_users = len(df_train_matrix.index)
+    model = implicit.bpr.BayesianPersonalizedRanking(learning_rate=configs['lr'], regularization=configs['weight_decay'], iterations=50,
+                                                     factors=configs['embed_dims'])
 
-    model = BayesianPR.BPR(total_users, total_movies, configs['embed_dims'])
+    a = sparse.coo_matrix(df_train_matrix.to_numpy().T)
+    temp = sparse.csr_matrix(df_train_matrix.to_numpy())
 
-    experiment_builder = BPRExperimentBuilder(model, train_loader, test_loader, total_movies, configs)
-    experiment_builder.run_experiment()
+    # train the model on a sparse matrix of item/user/confidence weights
+    model.fit(a)
+
+    for slate_size in configs['slate_size']:
+        print(f'Test for {slate_size}')
+        recommendations = model.recommend_all(temp, N=slate_size)
+
+        predicted_slates = []
+        ground_truth_slates = []
+
+        for values in test_loader:
+            for value in values[0]:
+                predicted_slates.append(recommendations[int(value)])
+
+            ground_truth_slate = values[1].cpu()
+            ground_truth_indexes = np.nonzero(ground_truth_slate)
+            grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
+                                            np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
+
+            ground_truth_slates.extend(grouped_ground_truth)
+
+        predicted_slates = torch.from_numpy(np.vstack(predicted_slates))
+
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, movies_categories)
+        diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
+
+        print(precision, hr, cc)
+        print(diversity)
 
 
 if __name__ == '__main__':

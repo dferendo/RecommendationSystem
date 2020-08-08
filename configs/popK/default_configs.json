@@ -1,10 +1,10 @@
 {
   "experiment_name": "popK/",
-  "seed": 9023912,
-  "is_training": true,
+  "seed": 0,
+  "is_training": false,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -12,6 +12,6 @@
   "minimum_movie_interaction": 100,
 
   "__comment": "Model Parameters",
-  "slate_size": 6,
-  "test_batch_size": 128
+  "slate_size": [3, 4, 5, 6, 7, 8, 9, 10],
+  "test_batch_size": 5
 }

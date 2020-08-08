@@ -18,7 +18,6 @@ def experiments_run():
     configs = extract_args_from_json()
     print(configs)
     set_seeds(configs['seed'])
-
     df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
 
     test_dataset = NoAdditionalInfoTestDataLoader(df_test, df_test_matrix)
@@ -26,10 +25,15 @@ def experiments_run():
                              shuffle=True, num_workers=4, drop_last=True)
 
     all_movies = np.arange(len(df_train_matrix.columns))
-    model = RandomSlateGeneration(configs['slate_size'], all_movies, configs['test_batch_size'])
 
-    experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), configs)
-    experiment_builder.run_experiment()
+    for slate_size in configs['slate_size']:
+        set_seeds(configs['seed'])
+        print(f'Test for {slate_size}')
+        model = RandomSlateGeneration(slate_size, all_movies, configs['test_batch_size'])
+
+        experiment_builder = ExperimentBuilderRandom(model, test_loader, len(df_train_matrix.columns), movies_categories,
+                                                     configs)
+        experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':

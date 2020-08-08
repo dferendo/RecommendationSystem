@@ -3,13 +3,14 @@ import torch.nn as nn
 
 
 class Generator(nn.Module):
-    def __init__(self, num_of_movies, slate_size, embed_dims, noise_dim, hidden_layers_dims, response_dims):
+    def __init__(self, num_of_movies, slate_size, embed_dims, noise_dim, hidden_layers_dims, response_dims, dropout):
         super(Generator, self).__init__()
         self.num_of_movies = num_of_movies
         self.embed_dims = embed_dims
         self.noise_dim = noise_dim
         self.slate_size = slate_size
         self.response_dims = response_dims
+        self.dropout = dropout
 
         # Index work from 0 - (num_of_movies - 1). Thus, we use num_of_movies as a padding index
         self.padding_idx = self.num_of_movies
@@ -23,7 +24,7 @@ class Generator(nn.Module):
         in_dims = self.embed_dims + self.noise_dim + self.response_dims
 
         for out_dims in hidden_layers_dims:
-            layers_block.extend(self.gen_block(in_dims, out_dims))
+            layers_block.extend(self.gen_block(in_dims, out_dims, dropout=self.dropout))
             in_dims = out_dims
 
         self.model_layers = nn.Sequential(
@@ -32,7 +33,7 @@ class Generator(nn.Module):
 
         # Will be used to hold the output linear layers
         self.output_dict = nn.ModuleDict()
-        self.output_dict['output_tanh'] = nn.Tanh()
+        self.output_dict['output_act'] = nn.Tanh()
         self.output_dict['softmax'] = nn.Softmax(dim=1)
 
         for i in range(self.slate_size):
@@ -53,12 +54,12 @@ class Generator(nn.Module):
 
         for i in range(self.slate_size):
             slate_embed_output = self.output_dict[f'output_linear{i}'](out)
-            slate_embed_output = self.output_dict['output_tanh'](slate_embed_output)
-
-            slate_embed_output = self.output_dict['softmax'](slate_embed_output)
+            slate_embed_output = self.output_dict['output_act'](slate_embed_output)
 
             if inference:
                 slate_embed_output = torch.argmax(slate_embed_output, dim=1).unsqueeze(dim=1)
+            else:
+                slate_embed_output = self.output_dict['softmax'](slate_embed_output)
 
             slate_outputs.append(slate_embed_output)
 
@@ -93,12 +94,13 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, num_of_movies, slate_size, embed_dims, hidden_layers_dims, response_vector_dims):
+    def __init__(self, num_of_movies, slate_size, embed_dims, hidden_layers_dims, response_vector_dims, dropout):
         super(Discriminator, self).__init__()
         self.num_of_movies = num_of_movies
         self.embed_dims = embed_dims
         self.response_vector_dims = response_vector_dims
         self.hidden_layers_dims = hidden_layers_dims
+        self.dropout = dropout
 
         # Index work from 0 - (num_of_movies - 1). Thus, we use num_of_movies as a padding index
         self.padding_idx = self.num_of_movies
@@ -114,8 +116,11 @@ class Discriminator(nn.Module):
 
         for idx, out_dims in enumerate(hidden_layers_dims):
             self.layer_dict[f'dis_linear_{idx}'] = nn.Linear(input_dims, out_dims)
-            self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
-            self.layer_dict[f'dis_activation_{idx}'] = nn.Sigmoid()
+
+            if self.dropout:
+                self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
+
+            self.layer_dict[f'dis_activation_{idx}'] = nn.LeakyReLU(0.2)
 
             input_dims = out_dims
 
@@ -134,15 +139,18 @@ class Discriminator(nn.Module):
 
         for idx in range(len(self.hidden_layers_dims)):
             out = self.layer_dict[f'dis_linear_{idx}'](out)
-            out = self.layer_dict[f'dis_dropout_{idx}'](out)
+
+            if self.dropout:
+                self.layer_dict[f'dis_dropout_{idx}'] = nn.Dropout(p=0.2)
+
             out = self.layer_dict[f'dis_activation_{idx}'](out)
 
             hidden_layers.append(out)
 
         out = self.layer_dict['output_layer'](out)
 
-        return out, None
         # return out, hidden_layers[-2]
+        return out, None
 
     def reset_parameters(self):
         """

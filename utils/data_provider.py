@@ -63,7 +63,7 @@ def load_movie_categories(configs, all_movies_in_train):
     if '(no genres listed)' in sparse_df:
         sparse_df = sparse_df.drop('(no genres listed)', 1)
 
-    return sparse_df
+    return sparse_df.values
 
 
 def split_dataset(configs):
@@ -75,12 +75,6 @@ def split_dataset(configs):
     # Make dataset implicit (ie User had interaction/User did not have interaction)
     df_all = df_all[df_all['rating'] >= configs['implicit_rating']]
     df_all.loc[df_all['rating'] >= configs['implicit_rating'], 'rating'] = 1
-
-    if configs['minimum_user_interaction'] != -1:
-        users_interactions_counts = df_all.groupby(['userId']).count()
-        # For each interaction, check whether the userId occurred more than MINIMUM_USER_INTERACTION times
-        df_all = df_all.loc[df_all['userId'].isin(users_interactions_counts[users_interactions_counts['timestamp'] >=
-                                                                            configs['minimum_user_interaction']].index)]
 
     if configs['minimum_movie_interaction'] != -1:
         movies_interactions_counts = df_all.groupby(['movieId']).count()
@@ -106,6 +100,12 @@ def split_dataset(configs):
         df_train, df_test = np.split(df_train, [val_indexes_start])
     else:
         print("Getting dataset for testing.....")
+
+    if configs['minimum_user_interaction'] != -1:
+        users_interactions_counts = df_train.groupby(['userId']).count()
+        # For each interaction, check whether the userId occurred more than MINIMUM_USER_INTERACTION times
+        df_train = df_train.loc[df_train['userId'].isin(users_interactions_counts[users_interactions_counts['timestamp'] >=
+                                                                                  configs['minimum_user_interaction']].index)]
 
     # Remove any users that do not appear in the training set
     df_test = df_test.loc[df_test['userId'].isin(df_train['userId'].unique())]
