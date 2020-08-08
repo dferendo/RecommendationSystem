@@ -11,7 +11,7 @@
 
   "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-25m/",
-  "slate_type": "diverse",
+  "slate_type": "future",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
