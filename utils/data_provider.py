@@ -10,7 +10,7 @@ def split_it(year):
     all_regex = re.findall('(\d+)', year)
 
     if len(all_regex) == 0:
-        print(year)
+        return -1
 
     return all_regex[-1]
 
