@@ -1,15 +1,16 @@
 {
-  "experiment_name": "listcvae_diverse_dataset/",
+  "experiment_name": "listcvae_print_movie_years/",
   "seed": 0,
-  "is_training": true,
+  "is_training": false,
   "use_gpu": true,
-  "save_model": false,
+  "save_model": true,
   "continue_from_epoch": -1,
   "load_model": false,
   "load_model_location": "",
+  "print_years": false,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "slate_type": "diverse",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
@@ -22,7 +23,7 @@
   "negative_sampling_for_slates": [0, 1, 2, 3, 4, 5],
 
   "__comment": "Model Parameters All",
-  "num_of_epochs": 50,
+  "num_of_epochs": 20,
   "train_batch_size": 64,
   "test_batch_size": 5,
   "embed_dims": 32,
@@ -32,7 +33,7 @@
   "beta_2": 0.999,
   "weight_decay": 0,
   "gdpp_weight": 0,
-  "diverse": true,
+  "diverse": false,
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],

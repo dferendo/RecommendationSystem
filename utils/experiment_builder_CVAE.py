@@ -279,17 +279,19 @@ class ExperimentBuilderCVAE(nn.Module):
         predicted_slates = predicted_slates.cpu()
         precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)
 
-        years_dict = {}
-        all_years = np.unique(self.titles)
+        if self.configs['print_years']:
+            years_dict = {}
+            all_years = np.unique(self.titles)
 
-        for year in all_years:
-            years_dict[year] = 0
+            for year in all_years:
+                years_dict[year] = 0
 
-        for predicted_slate in list(predicted_slates):
-            for predicted_movie in predicted_slate:
-                years_dict[self.titles[predicted_movie]] += 1
+            for predicted_slate in list(predicted_slates):
+                for predicted_movie in predicted_slate:
+                    years_dict[self.titles[predicted_movie]] += 1
 
-        print(years_dict)
+            print(years_dict)
+            
         # path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
 
         # with open(path_to_save, 'w') as f:
