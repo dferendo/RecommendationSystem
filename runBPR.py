@@ -12,6 +12,9 @@ import torch
 import numpy as np
 import implicit
 from scipy import sparse
+import sys
+import os
+from torch.utils.tensorboard import SummaryWriter
 
 
 class BPRExperimentBuilder(ExperimentBuilderNN):
@@ -66,7 +69,7 @@ def experiments_run():
     print(configs)
     set_seeds(configs['seed'])
 
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, titles = split_dataset(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, release_years, titles = split_dataset(configs)
 
     test_dataset = UserIndexTestDataLoader(df_test, df_test_matrix, df_train_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=True, num_workers=4,
@@ -103,16 +106,35 @@ def experiments_run():
 
         # Count years
         years_dict = {}
-        all_years = np.unique(titles)
+        all_years = np.unique(release_years)
 
         for year in all_years:
             years_dict[year] = 0
 
         for predicted_slate in list(predicted_slates):
             for predicted_movie in predicted_slate:
-                years_dict[titles[predicted_movie]] += 1
+                years_dict[release_years[predicted_movie]] += 1
 
         print(years_dict)
+
+        # Saving runs
+        experiment_folder = "runs/{0}".format(configs['experiment_name'])
+        writer = SummaryWriter(experiment_folder)
+
+        predicted_slates = os.path.abspath(os.path.join(experiment_folder, "predicted_slate"))
+
+        if not os.path.exists(predicted_slates):
+            os.mkdir(predicted_slates)
+
+        path_to_save = os.path.join(predicted_slates, f'movie_names.txt')
+
+        # Print Predicted movies
+        with open(path_to_save, 'w') as f:
+            for predicted_slate in predicted_slates:
+                for predicted_movie in predicted_slate:
+                    f.write(f"{titles[predicted_movie].encode(sys.stdout.encoding, errors='replace')},")
+
+                f.write(f'\n')
 
         precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, movies_categories)
         diversity = movie_diversity(predicted_slates, len(df_train_matrix.columns))
