@@ -12,12 +12,13 @@ import os
 
 
 class ExperimentBuilderPlain(nn.Module, ABC):
-    def __init__(self, model, evaluation_loader, number_of_movies, movies_categories, titles, configs):
+    def __init__(self, model, evaluation_loader, number_of_movies, movies_categories, release_years, titles, configs):
         super(ExperimentBuilderPlain, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
         self.movie_categories = movies_categories
+        self.release_years = release_years
         self.titles = titles
 
         self.model = model
@@ -92,16 +93,26 @@ class ExperimentBuilderPlain(nn.Module, ABC):
 
         # Count years
         years_dict = {}
-        all_years = np.unique(self.titles)
+        all_years = np.unique(self.release_years)
 
         for year in all_years:
             years_dict[year] = 0
 
         for predicted_slate in list(predicted_slates):
             for predicted_movie in predicted_slate:
-                years_dict[self.titles[predicted_movie]] += 1
+                years_dict[self.release_years[predicted_movie]] += 1
 
         print(years_dict)
+
+        path_to_save = os.path.join(self.predicted_slates, f'movie_names.txt')
+
+        # Print Predicted movies
+        with open(path_to_save, 'w') as f:
+            for predicted_slate in predicted_slates:
+                for predicted_movie in predicted_slate:
+                    f.write(f"{self.titles[predicted_movie].encode(sys.stdout.encoding, errors='replace')},")
+
+                f.write(f'\n')
 
         return precision, hr, cc, diversity
 

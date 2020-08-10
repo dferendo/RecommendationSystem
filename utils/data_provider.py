@@ -47,7 +47,7 @@ def load_movie_categories(configs, all_movies_in_train):
 
     # A movie can have multiple genres and each genre is seperate by a '|'
     df_all['genres'] = df_all['genres'].str.split('|')
-    df_titles['title'] = df_titles['title'].apply(split_it)
+    df_titles['release_year'] = df_titles['title'].apply(split_it)
 
     # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
     df_all = df_all.explode('genres')
@@ -76,7 +76,7 @@ def load_movie_categories(configs, all_movies_in_train):
     if '(no genres listed)' in sparse_df:
         sparse_df = sparse_df.drop('(no genres listed)', 1)
 
-    return sparse_df.values, df_titles['title'].values
+    return sparse_df.values, df_titles['release_year'].values, df_titles['title'].values
 
 
 def split_dataset(configs):
@@ -129,7 +129,7 @@ def split_dataset(configs):
     # This is needed so that the train/test will have the same amount of columns
     all_movies_in_train = df_train['movieId'].unique()
 
-    movies_categories, titles = load_movie_categories(configs, all_movies_in_train)
+    movies_categories, release_years, titles = load_movie_categories(configs, all_movies_in_train)
 
     return df_train, df_test, get_sparse_df(df_train, all_movies_in_train), \
-           get_sparse_df(df_test, all_movies_in_train), movies_categories, titles.astype(np.int32)
+           get_sparse_df(df_test, all_movies_in_train), movies_categories, release_years.astype(np.int32), titles
