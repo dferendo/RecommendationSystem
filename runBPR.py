@@ -121,12 +121,12 @@ def experiments_run():
         experiment_folder = "runs/{0}".format(configs['experiment_name'])
         writer = SummaryWriter(experiment_folder)
 
-        predicted_slates = os.path.abspath(os.path.join(experiment_folder, "predicted_slate"))
+        predicted_slates_location = os.path.abspath(os.path.join(experiment_folder, "predicted_slate"))
 
-        if not os.path.exists(predicted_slates):
-            os.mkdir(predicted_slates)
+        if not os.path.exists(predicted_slates_location):
+            os.mkdir(predicted_slates_location)
 
-        path_to_save = os.path.join(predicted_slates, f'movie_names.txt')
+        path_to_save = os.path.join(predicted_slates_location, f'movie_names.txt')
 
         # Print Predicted movies
         with open(path_to_save, 'w') as f:
