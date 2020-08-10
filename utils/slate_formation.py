@@ -313,9 +313,17 @@ def get_data_loaders(configs, one_hot):
 
     title_matrix_location = os.path.join(configs['data_location'], title_matrix_location)
 
+    years_matrix_location = 'sf_{}_{}_{}_{}_years.npy'.format(configs['slate_size'],
+                                                                 '-'.join(str(e) for e in
+                                                                          configs['negative_sampling_for_slates']),
+                                                                 configs['is_training'], configs['slate_type'])
+
+    years_matrix_location = os.path.join(configs['data_location'], years_matrix_location)
+
     # Check if we have the slates for training
     if os.path.isfile(slate_formation_file_location) and os.path.isfile(slate_formation_test_file_location) \
-            and os.path.isfile(genre_matrix_location) and os.path.isfile(title_matrix_location):
+            and os.path.isfile(genre_matrix_location) and os.path.isfile(title_matrix_location) and \
+            os.path.isfile(years_matrix_location):
         slate_formation = pd.read_csv(slate_formation_file_location)
         test_slate_formation = pd.read_csv(slate_formation_test_file_location)
 
@@ -324,8 +332,9 @@ def get_data_loaders(configs, one_hot):
 
         movies_categories = np.load(genre_matrix_location)
         titles = np.load(title_matrix_location)
+        release_years = np.load(years_matrix_location)
     else:
-        df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, titles = split_dataset(configs)
+        df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, release_years, titles = split_dataset(configs)
 
         slate_formation = generate_slate_formation(df_train, df_train_matrix, configs['slate_size'],
                                                    configs['negative_sampling_for_slates'],
@@ -342,6 +351,7 @@ def get_data_loaders(configs, one_hot):
 
         np.save(genre_matrix_location, movies_categories)
         np.save(title_matrix_location, titles)
+        np.save(years_matrix_location, release_years)
 
     print(f'Number of users: {dataset_configs["number_of_users"]}, Number of movies: {dataset_configs["number_of_movies"]}')
 
@@ -353,4 +363,4 @@ def get_data_loaders(configs, one_hot):
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'], shuffle=False, num_workers=4,
                              drop_last=False)
 
-    return train_loader, test_loader, dataset_configs, movies_categories, titles
+    return train_loader, test_loader, dataset_configs, movies_categories, release_years, titles

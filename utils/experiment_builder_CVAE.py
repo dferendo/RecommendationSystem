@@ -114,13 +114,14 @@ def compute_gdpp(phi_fake, phi_real, backward=True):
 
 
 class ExperimentBuilderCVAE(nn.Module):
-    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, movie_categories, titles, configs):
+    def __init__(self, model, train_loader, evaluation_loader, number_of_movies, movie_categories, release_years, titles, configs):
         super(ExperimentBuilderCVAE, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
         self.movie_categories = movie_categories
         self.titles = titles
+        self.release_years = release_years
 
         self.model = model
         self.KL_weight = None
@@ -286,14 +287,14 @@ class ExperimentBuilderCVAE(nn.Module):
 
         if self.configs['print_years']:
             years_dict = {}
-            all_years = np.unique(self.titles)
+            all_years = np.unique(self.release_years)
 
             for year in all_years:
                 years_dict[year] = 0
 
             for predicted_slate in list(predicted_slates):
                 for predicted_movie in predicted_slate:
-                    years_dict[self.titles[predicted_movie]] += 1
+                    years_dict[self.release_years[predicted_movie]] += 1
 
             path_to_save = os.path.join(self.predicted_slates, f'years_{epoch_idx}.txt')
 

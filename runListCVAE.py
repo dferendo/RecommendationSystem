@@ -13,7 +13,7 @@ def experiments_run():
     print(configs)
     set_seeds(configs['seed'])
 
-    train_loader, test_loader, data_configs, movie_categories, titles = get_data_loaders(configs, False)
+    train_loader, test_loader, data_configs, movie_categories, release_years, titles = get_data_loaders(configs, False)
 
     if configs['diverse']:
         # One dims maximize utility, one dim genres maximization
@@ -39,7 +39,7 @@ def experiments_run():
     print(model)
 
     experiment_builder = ExperimentBuilderCVAE(model, train_loader, test_loader, data_configs['number_of_movies'],
-                                               movie_categories, titles,
+                                               movie_categories, release_years, titles,
                                                configs)
 
     if configs['load_model']:
