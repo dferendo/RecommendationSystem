@@ -248,31 +248,31 @@ class ExperimentBuilderCVAE(nn.Module):
         ground_truth_slates = []
 
         with torch.no_grad():
-            # with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
-            for idx, (user_ids, padded_interactions, interaction_length, ground_truth) in enumerate(self.evaluation_loader):
-                padded_interactions = padded_interactions.to(self.device)
-                interaction_length = interaction_length.to(self.device)
+            with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
+                for idx, (user_ids, padded_interactions, interaction_length, ground_truth) in enumerate(self.evaluation_loader):
+                    padded_interactions = padded_interactions.to(self.device)
+                    interaction_length = interaction_length.to(self.device)
 
-                click_vector = torch.full((padded_interactions.shape[0], self.configs['slate_size']),
-                                          1, device=self.device, dtype=torch.float32)
-                response_vector = click_vector.sum(dim=1).unsqueeze(dim=1)
+                    click_vector = torch.full((padded_interactions.shape[0], self.configs['slate_size']),
+                                              1, device=self.device, dtype=torch.float32)
+                    response_vector = click_vector.sum(dim=1).unsqueeze(dim=1)
 
-                if self.configs['diverse']:
-                    genre_vector = torch.full((padded_interactions.shape[0], 1), genre_idx,
-                                              device=self.device, dtype=torch.float32)
-                    response_vector = torch.cat((response_vector, genre_vector), dim=1)
+                    if self.configs['diverse']:
+                        genre_vector = torch.full((padded_interactions.shape[0], 1), genre_idx,
+                                                  device=self.device, dtype=torch.float32)
+                        response_vector = torch.cat((response_vector, genre_vector), dim=1)
 
-                model_slates = self.model.inference(padded_interactions, interaction_length, response_vector)
+                    model_slates = self.model.inference(padded_interactions, interaction_length, response_vector)
 
-                ground_truth_slate = ground_truth.cpu()
-                ground_truth_indexes = np.nonzero(ground_truth_slate)
-                grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
-                                                np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
+                    ground_truth_slate = ground_truth.cpu()
+                    ground_truth_indexes = np.nonzero(ground_truth_slate)
+                    grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
+                                                    np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
 
-                predicted_slates.append(model_slates)
-                ground_truth_slates.extend(grouped_ground_truth)
+                    predicted_slates.append(model_slates)
+                    ground_truth_slates.extend(grouped_ground_truth)
 
-                # pbar_val.update(1)
+                    pbar_val.update(1)
 
         predicted_slates = torch.cat(predicted_slates, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
@@ -296,6 +296,17 @@ class ExperimentBuilderCVAE(nn.Module):
             with open(path_to_save, 'w') as f:
                 for key, value in years_dict.items():
                     f.write(f"listcvae,{self.configs['seed']},{key},{value}\n")
+
+        if self.configs['print_movie_titles']:
+            path_to_save = os.path.join(self.predicted_slates, f'titles_{epoch_idx}.txt')
+
+            # Print Predicted movies
+            with open(path_to_save, 'w') as f:
+                for predicted_slate in predicted_slates:
+                    for predicted_movie in predicted_slate:
+                        f.write(f"{self.titles[predicted_movie].encode(sys.stdout.encoding, errors='replace')},")
+
+                    f.write(f'\n')
 
         # path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
 

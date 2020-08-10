@@ -1,5 +1,5 @@
 {
-  "experiment_name": "listcvae_diverse_large_slate/",
+  "experiment_name": "listcvae_print_titles/",
   "seed": 0,
   "is_training": false,
   "use_gpu": true,
@@ -8,6 +8,7 @@
   "load_model": true,
   "load_model_location": "",
   "print_years": false,
+  "print_movie_titles": true,
 
   "__comment": "Dataset Parameters",
   "data_location": "./dataset/ml-25m/",
@@ -33,7 +34,7 @@
   "beta_2": 0.999,
   "weight_decay": 0,
   "gdpp_weight": 0,
-  "diverse": true,
+  "diverse": false,
 
   "__comment": "Encoder Parameters",
   "encoder_dims": [1024, 1024],
