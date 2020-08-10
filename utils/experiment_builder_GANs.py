@@ -45,6 +45,11 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         if not os.path.exists(self.experiment_saved_models):
             os.mkdir(self.experiment_saved_models)
 
+        self.predicted_slates = os.path.abspath(os.path.join(self.experiment_folder, "predicted_slate"))
+
+        if not os.path.exists(self.predicted_slates):
+            os.mkdir(self.predicted_slates)
+
         # Set best models to be at 0 since we are just starting
         self.best_val_model_idx = 0
         self.best_val_model_precision = 0.
@@ -158,11 +163,11 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                     all_dis_losses.append(float(loss_dis))
 
                     pbar.update(1)
-                    pbar.set_description(f"loss_Gen: {loss_gen:.4f}, loss_Dis: {loss_dis:.4f}")
+                    pbar.set_description(f"loss_Gen: {float(loss_gen):.4f}, loss_Dis: {float(loss_dis):.4f}")
 
         return np.mean(all_gen_losses), np.mean(all_dis_losses)
 
-    def run_evaluation_epoch(self):
+    def run_evaluation_epoch(self, epoch_idx):
         self.generator.eval()
         self.discriminator.eval()
         predicted_slates = []
@@ -173,7 +178,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
                 for idx, values_to_unpack in enumerate(self.evaluation_loader):
                     predicted_slate = self.eval_iteration(values_to_unpack)
 
-                    ground_truth_slate = values_to_unpack[2].cpu()
+                    ground_truth_slate = values_to_unpack[3].cpu()
                     ground_truth_indexes = np.nonzero(ground_truth_slate)
                     grouped_ground_truth = np.split(ground_truth_indexes[:, 1],
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
@@ -189,6 +194,12 @@ class ExperimentBuilderGAN(nn.Module, ABC):
         predicted_slates = predicted_slates.cpu()
         precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
 
+        path_to_save = os.path.join(self.predicted_slates, f'{epoch_idx}.txt')
+
+        with open(path_to_save, 'w') as f:
+            for item in predicted_slates:
+                f.write(f'{item}\n')
+
         return precision, hr, diversity
 
     def run_experiment(self):
@@ -198,7 +209,7 @@ class ExperimentBuilderGAN(nn.Module, ABC):
             self.pre_epoch_init_function()
 
             average_gen_loss, average_dis_loss = self.run_training_epoch()
-            precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
+            precision_mean, hr_mean, diversity = self.run_evaluation_epoch(epoch_idx)
 
             if precision_mean > self.best_val_model_precision:
                 self.best_val_model_precision = precision_mean

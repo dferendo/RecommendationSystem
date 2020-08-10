@@ -1,0 +1,7 @@
+seed,slate_size,negative_sampling_for_slates,load_model_location
+0,4,"[0,1,2,3,4]","/home/s1994033/RecommendationSystem/runs/listcvae_diverse_large_slate/see_0_sla_4_neg_[0,1,2,3,4]_/saved_models/train_model_14"
+54425,4,"[0,1,2,3,4]","/home/s1994033/RecommendationSystem/runs/listcvae_diverse_large_slate/see_54425_sla_4_neg_[0,1,2,3,4]_/saved_models/train_model_14"
+954358,4,"[0,1,2,3,4]","/home/s1994033/RecommendationSystem/runs/listcvae_diverse_large_slate/see_954358_sla_4_neg_[0,1,2,3,4]_/saved_models/train_model_14"
+0,10,"[0,1,2,3,4,5]","/home/s1994033/RecommendationSystem/runs/listcvae_diverse_large_slate/see_0_sla_10_neg_[0,1,2,3,4,5]_/saved_models/train_model_14"
+54425,10,"[0,1,2,3,4,5]","/home/s1994033/RecommendationSystem/runs/listcvae_diverse_large_slate/see_54425_sla_10_neg_[0,1,2,3,4,5]_/saved_models/train_model_14"
+954358,10,"[0,1,2,3,4,5]","/home/s1994033/RecommendationSystem/runs/listcvae_diverse_large_slate/see_954358_sla_10_neg_[0,1,2,3,4,5]_/saved_models/train_model_14"

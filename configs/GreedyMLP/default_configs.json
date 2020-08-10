@@ -7,7 +7,7 @@
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -17,12 +17,12 @@
   "__comment": "Model Parameters",
   "num_of_epochs": 20,
   "slate_size": 6,
-  "train_batch_size": 512,
-  "test_batch_size": 128,
-  "neg_sample_per_training_example": 3,
-  "hidden_layers_dims": [16, 64, 32, 16, 8],
-  "dropout": 0.2,
+  "train_batch_size": 256,
+  "test_batch_size": 5,
+  "neg_sample_per_training_example": 2,
+  "hidden_layers_dims": [16, 128, 128, 128],
+  "dropout": 0.0,
   "use_bias": true,
-  "lr": 0.005,
+  "lr": 0.001,
   "weight_decay": 0.0
 }

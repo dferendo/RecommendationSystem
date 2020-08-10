@@ -1,0 +1,27 @@
+{
+  "experiment_name": "ALS/",
+  "seed": 0,
+  "is_training": false,
+  "use_gpu": true,
+  "save_model": false,
+  "continue_from_epoch": -1,
+
+  "__comment": "Dataset Parameters",
+  "data_location": "./dataset/ml-25m/",
+  "implicit_rating": 0,
+  "validation_set_size": 0.15,
+  "test_set_size": 0.15,
+  "minimum_user_interaction": 10,
+  "minimum_movie_interaction": 100,
+
+  "__comment": "Model Parameters",
+  "num_of_epochs": 50,
+  "slate_size": [5],
+  "train_batch_size": 4096,
+  "test_batch_size": 128,
+  "neg_sample_per_training_example": 5,
+  "embed_dims": 64,
+  "use_bias": true,
+  "lr": 0.01,
+  "weight_decay": 0.1
+}

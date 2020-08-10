@@ -18,16 +18,19 @@ def experiments_run():
     print(configs)
     set_seeds(configs['seed'])
 
-    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories = split_dataset(configs)
+    df_train, df_test, df_train_matrix, df_test_matrix, movies_categories, titles = split_dataset(configs)
 
     test_dataset = NoAdditionalInfoTestDataLoader(df_test, df_test_matrix)
     test_loader = DataLoader(test_dataset, batch_size=configs['test_batch_size'],
                              shuffle=True, num_workers=4, drop_last=True)
 
-    model = PopularKSlateGeneration(configs['slate_size'], df_train, df_train_matrix, configs['test_batch_size'])
+    for slate_size in configs['slate_size']:
+        print(f'Test for {slate_size}')
+        model = PopularKSlateGeneration(slate_size, df_train, df_train_matrix, configs['test_batch_size'])
 
-    experiment_builder = ExperimentBuilderPopK(model, test_loader, len(df_train_matrix.columns), configs)
-    experiment_builder.run_experiment()
+        experiment_builder = ExperimentBuilderPopK(model, test_loader, len(df_train_matrix.columns), movies_categories,
+                                                   titles, configs)
+        experiment_builder.run_experiment()
 
 
 if __name__ == '__main__':

@@ -1,13 +1,13 @@
 {
   "experiment_name": "BPR/",
   "seed": 0,
-  "is_training": true,
+  "is_training": false,
   "use_gpu": true,
   "save_model": false,
   "continue_from_epoch": -1,
 
   "__comment": "Dataset Parameters",
-  "data_location": "./dataset/ml-1m/",
+  "data_location": "./dataset/ml-25m/",
   "implicit_rating": 0,
   "validation_set_size": 0.15,
   "test_set_size": 0.15,
@@ -16,12 +16,12 @@
 
   "__comment": "Model Parameters",
   "num_of_epochs": 30,
-  "slate_size": 6,
+  "slate_size": [5],
   "train_batch_size": 4096,
   "test_batch_size": 128,
   "neg_sample_per_training_example": 4,
-  "embed_dims": 40,
+  "embed_dims": 32,
   "use_bias": true,
-  "lr": 0.01,
+  "lr": 0.001,
   "weight_decay": 0.001
 }

@@ -1,21 +1,24 @@
 import torch.nn as nn
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from utils.evaluation_metrics import precision_hit_ratio, movie_diversity
+from utils.evaluation_metrics import precision_hit_coverage_ratio, movie_diversity
 
 import numpy as np
 import tqdm
 import sys
 
 from abc import ABC, abstractmethod
+import os
 
 
 class ExperimentBuilderPlain(nn.Module, ABC):
-    def __init__(self, model, evaluation_loader, number_of_movies, configs):
+    def __init__(self, model, evaluation_loader, number_of_movies, movies_categories, titles, configs):
         super(ExperimentBuilderPlain, self).__init__()
         self.configs = configs
         torch.set_default_tensor_type(torch.FloatTensor)
         self.number_of_movies = number_of_movies
+        self.movie_categories = movies_categories
+        self.titles = titles
 
         self.model = model
         self.model.reset_parameters()
@@ -25,6 +28,11 @@ class ExperimentBuilderPlain(nn.Module, ABC):
         # Saving runs
         self.experiment_folder = "runs/{0}".format(configs['experiment_name'])
         self.writer = SummaryWriter(self.experiment_folder)
+
+        self.predicted_slates = os.path.abspath(os.path.join(self.experiment_folder, "predicted_slate"))
+
+        if not os.path.exists(self.predicted_slates):
+            os.mkdir(self.predicted_slates)
 
     @staticmethod
     def print_parameters(named_parameters):
@@ -73,19 +81,39 @@ class ExperimentBuilderPlain(nn.Module, ABC):
         predicted_slates = torch.cat(predicted_slates, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
-        predicted_slates = predicted_slates.cpu()
-        precision, hr = precision_hit_ratio(predicted_slates, ground_truth_slates)
+        path_to_save = os.path.join(self.predicted_slates, f'0.txt')
 
-        return precision, hr, diversity
+        with open(path_to_save, 'w') as f:
+            for item in predicted_slates:
+                f.write(f'{item}\n')
+
+        predicted_slates = predicted_slates.cpu()
+        precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)
+
+        # Count years
+        years_dict = {}
+        all_years = np.unique(self.titles)
+
+        for year in all_years:
+            years_dict[year] = 0
+
+        for predicted_slate in list(predicted_slates):
+            for predicted_movie in predicted_slate:
+                years_dict[self.titles[predicted_movie]] += 1
+
+        print(years_dict)
+
+        return precision, hr, cc, diversity
 
     def run_experiment(self):
-        precision_mean, hr_mean, diversity = self.run_evaluation_epoch()
+        precision_mean, hr_mean, cc, diversity = self.run_evaluation_epoch()
 
         self.writer.add_scalar('Precision', precision_mean)
         self.writer.add_scalar('Hit Ratio', hr_mean)
         self.writer.add_scalar('Diversity', diversity)
+        self.writer.add_scalar('CC', cc)
 
-        print(f'HR: {hr_mean}, Precision: {precision_mean}, Diversity: {diversity}')
+        print(f'{precision_mean},{hr_mean},{diversity},{cc}')
 
         self.writer.flush()
         self.writer.close()

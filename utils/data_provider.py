@@ -3,6 +3,16 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from pandas.api.types import CategoricalDtype
 import os
+import re
+
+
+def split_it(year):
+    all_regex = re.findall('(\d+)', year)
+
+    if len(all_regex) == 0:
+        return -1
+
+    return all_regex[-1]
 
 
 def get_sparse_df(df, all_movies_in_train):
@@ -32,10 +42,12 @@ def load_movie_categories(configs, all_movies_in_train):
     movies_categories_location = os.path.join(configs['data_location'], 'movies.csv')
 
     # Loading
-    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'genres': np.str})
+    df_all = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'title': np.str, 'genres': np.str})
+    df_titles = pd.read_csv(movies_categories_location, dtype={'movieId': np.int32, 'title': np.str})
 
     # A movie can have multiple genres and each genre is seperate by a '|'
     df_all['genres'] = df_all['genres'].str.split('|')
+    df_titles['title'] = df_titles['title'].apply(split_it)
 
     # Explode transforms a list to a row, thus for each movie that have multiple genres, create a new row
     df_all = df_all.explode('genres')
@@ -45,6 +57,7 @@ def load_movie_categories(configs, all_movies_in_train):
 
     # Keep only the movies that are found in the training examples so that the indexes match
     df_all = df_all[df_all['movieId'].isin(all_movies_in_train)]
+    df_titles = df_titles[df_titles['movieId'].isin(all_movies_in_train)]
 
     # Convert to a 2-d matrix
     movies_category = CategoricalDtype(sorted(all_movies_in_train), ordered=True)
@@ -63,7 +76,7 @@ def load_movie_categories(configs, all_movies_in_train):
     if '(no genres listed)' in sparse_df:
         sparse_df = sparse_df.drop('(no genres listed)', 1)
 
-    return sparse_df
+    return sparse_df.values, df_titles['title'].values
 
 
 def split_dataset(configs):
@@ -75,12 +88,6 @@ def split_dataset(configs):
     # Make dataset implicit (ie User had interaction/User did not have interaction)
     df_all = df_all[df_all['rating'] >= configs['implicit_rating']]
     df_all.loc[df_all['rating'] >= configs['implicit_rating'], 'rating'] = 1
-
-    if configs['minimum_user_interaction'] != -1:
-        users_interactions_counts = df_all.groupby(['userId']).count()
-        # For each interaction, check whether the userId occurred more than MINIMUM_USER_INTERACTION times
-        df_all = df_all.loc[df_all['userId'].isin(users_interactions_counts[users_interactions_counts['timestamp'] >=
-                                                                            configs['minimum_user_interaction']].index)]
 
     if configs['minimum_movie_interaction'] != -1:
         movies_interactions_counts = df_all.groupby(['movieId']).count()
@@ -107,6 +114,12 @@ def split_dataset(configs):
     else:
         print("Getting dataset for testing.....")
 
+    if configs['minimum_user_interaction'] != -1:
+        users_interactions_counts = df_train.groupby(['userId']).count()
+        # For each interaction, check whether the userId occurred more than MINIMUM_USER_INTERACTION times
+        df_train = df_train.loc[df_train['userId'].isin(users_interactions_counts[users_interactions_counts['timestamp'] >=
+                                                                                  configs['minimum_user_interaction']].index)]
+
     # Remove any users that do not appear in the training set
     df_test = df_test.loc[df_test['userId'].isin(df_train['userId'].unique())]
 
@@ -116,7 +129,7 @@ def split_dataset(configs):
     # This is needed so that the train/test will have the same amount of columns
     all_movies_in_train = df_train['movieId'].unique()
 
-    movies_categories = load_movie_categories(configs, all_movies_in_train)
+    movies_categories, titles = load_movie_categories(configs, all_movies_in_train)
 
     return df_train, df_test, get_sparse_df(df_train, all_movies_in_train), \
-           get_sparse_df(df_test, all_movies_in_train), movies_categories
+           get_sparse_df(df_test, all_movies_in_train), movies_categories, titles.astype(np.int32)
