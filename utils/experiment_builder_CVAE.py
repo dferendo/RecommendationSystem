@@ -246,6 +246,7 @@ class ExperimentBuilderCVAE(nn.Module):
         self.model.eval()
         predicted_slates = []
         ground_truth_slates = []
+        conditional_info =[]
 
         with torch.no_grad():
             with tqdm.tqdm(total=len(self.evaluation_loader), file=sys.stdout) as pbar_val:
@@ -270,14 +271,17 @@ class ExperimentBuilderCVAE(nn.Module):
                                                     np.cumsum(np.unique(ground_truth_indexes[:, 0], return_counts=True)[1])[:-1])
 
                     predicted_slates.append(model_slates)
+                    conditional_info.append(padded_interactions)
                     ground_truth_slates.extend(grouped_ground_truth)
 
                     pbar_val.update(1)
 
         predicted_slates = torch.cat(predicted_slates, dim=0)
+        conditional_info = torch.cat(conditional_info, dim=0)
         diversity = movie_diversity(predicted_slates, self.number_of_movies)
 
         predicted_slates = predicted_slates.cpu()
+        conditional_info = conditional_info.cpu()
         precision, hr, cc = precision_hit_coverage_ratio(predicted_slates, ground_truth_slates, self.movie_categories)
 
         if self.configs['print_years']:
@@ -299,11 +303,22 @@ class ExperimentBuilderCVAE(nn.Module):
 
         if self.configs['print_movie_titles']:
             path_to_save = os.path.join(self.predicted_slates, f'titles_{epoch_idx}.txt')
+            path_to_save_2 = os.path.join(self.predicted_slates, f'conditional_titles_{epoch_idx}.txt')
 
             # Print Predicted movies
             with open(path_to_save, 'w') as f:
                 for predicted_slate in predicted_slates:
                     for predicted_movie in predicted_slate:
+                        f.write(f"{self.titles[predicted_movie].encode(sys.stdout.encoding, errors='replace')},")
+
+                    f.write(f'\n')
+
+            with open(path_to_save_2, 'w') as f:
+                for conditional_user_info in conditional_info:
+                    for predicted_movie in conditional_user_info:
+                        if predicted_movie == len(self.titles):
+                            continue
+
                         f.write(f"{self.titles[predicted_movie].encode(sys.stdout.encoding, errors='replace')},")
 
                     f.write(f'\n')
